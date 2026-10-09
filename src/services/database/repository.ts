@@ -1,4 +1,4 @@
-import type { Table } from "dexie";
+import type { EntityTable, Table } from "dexie";
 import { getDB } from "./db";
 import { generateDeviceId } from "@/services/ids";
 import type { Adjustment, ChangeLog, Expense, Purchase, Sale, Settings } from "@/types";
