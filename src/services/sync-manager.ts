@@ -15,7 +15,12 @@ import {
   type SheetData,
   type SheetRow,
 } from "./google-sheets";
-import { getAccessToken } from "./google-auth";
+import {
+  getAccessToken,
+  getGoogleRole,
+  setGoogleRole,
+  setGoogleSheetTitle,
+} from "./google-auth";
 
 /**
  * Sync manager — pushes local data to a Google Sheet and pulls it back,
@@ -84,13 +89,14 @@ export class SyncManager {
   }
 
   getRole(): SheetRole {
-    return this.role;
+    if (this.role) return this.role;
+    return getGoogleRole();
   }
 
   getStatus(): SyncStatus {
     return {
       connected: this.isConnected(),
-      role: this.role,
+      role: this.getRole(),
       email: typeof localStorage !== "undefined" ? localStorage.getItem("googleSheetEmail") : null,
       lastSync: typeof localStorage !== "undefined" ? localStorage.getItem("googleLastSync") : null,
       sheetId: this.currentSheetId,
@@ -111,18 +117,21 @@ export class SyncManager {
   private setRole(role: SheetRole): void {
     if (this.role === role) return;
     this.role = role;
+    setGoogleRole(role);
     this.listeners.forEach((cb) => cb(role));
   }
 
-  /** Detect whether the current account can edit the linked sheet (403 → read-only). */
+  /** Detect whether the current account can edit the linked sheet, and save the title and role. */
   async detectPermission(): Promise<SheetRole> {
     const sheetId = this.currentSheetId;
     if (!sheetId) throw new Error("No Google sheet connected");
     await this.configureSheets();
-    const canEdit = await sheetsService.checkWritePermission();
-    this.setRole(canEdit ? "edit" : "read");
+    const access = await sheetsService.checkSheetAccess();
+    setGoogleSheetTitle(access.title);
+    this.setRole(access.role);
     return this.role;
   }
+
 
   private async configureSheets(): Promise<void> {
     const token = await getAccessToken();

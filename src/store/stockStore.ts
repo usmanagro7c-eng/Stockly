@@ -99,7 +99,7 @@ export const useStockStore = create<State>((set, get) => ({
   adjustments: [],
   changelogs: [],
   settings: { ...DEFAULT_SETTINGS },
-  sheetRole: null,
+  sheetRole: syncManager.getRole(),
 
   init: async () => {
     // Only skip when a previous attempt already succeeded. A stalled attempt
@@ -449,7 +449,13 @@ export const useStockStore = create<State>((set, get) => ({
       linked_file_name: sheetId,
       last_sync_time: new Date().toISOString(),
     });
+    if (role === "read") {
+      await get().syncFromGoogleSheets(true);
+    } else {
+      await get().syncToGoogleSheets(true);
+    }
   },
+
 
   refreshSheetPermission: async () => {
     if (!get().settings.linked_file_name && !syncManager.isConnected()) return;
@@ -596,3 +602,8 @@ export function useMetrics() {
 export function useCurrency() {
   return useStockStore((s) => s.settings.currency_symbol || "Rs.");
 }
+
+export function useIsReadOnly() {
+  return useStockStore((s) => s.sheetRole === "read");
+}
+

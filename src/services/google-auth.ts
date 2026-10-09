@@ -227,7 +227,7 @@ export async function authenticate(): Promise<AuthState> {
     pendingCallbacks.push(waiter);
 
     try {
-      oauthInstance!.requestAccessToken({ prompt: "consent" });
+      oauthInstance!.requestAccessToken({ prompt: "select_account" });
     } catch (error) {
       clearTimeout(timeout);
       const i = pendingCallbacks.indexOf(waiter);
@@ -330,6 +330,24 @@ export function getGoogleEmail(): string | null {
   return readLocal("googleSheetEmail");
 }
 
+export function getGoogleRole(): "edit" | "read" | null {
+  const role = readLocal("googleSheetRole");
+  return role === "edit" || role === "read" ? role : null;
+}
+
+export function setGoogleRole(role: "edit" | "read" | null): void {
+  if (role) writeLocal("googleSheetRole", role);
+  else if (typeof localStorage !== "undefined") localStorage.removeItem("googleSheetRole");
+}
+
+export function getGoogleSheetTitle(): string | null {
+  return readLocal("googleSheetTitle");
+}
+
+export function setGoogleSheetTitle(title: string): void {
+  writeLocal("googleSheetTitle", title);
+}
+
 export function setGoogleSheetData(token: string, email: string, sheetId: string): void {
   writeLocal("googleSheetToken", token);
   writeLocal("googleSheetEmail", email);
@@ -342,5 +360,8 @@ export function clearGoogleSheetData(): void {
   localStorage.removeItem("googleSheetToken");
   localStorage.removeItem("googleSheetEmail");
   localStorage.removeItem("googleSheetId");
+  localStorage.removeItem("googleSheetTitle");
+  localStorage.removeItem("googleSheetRole");
   localStorage.removeItem("googleLastSync");
 }
+

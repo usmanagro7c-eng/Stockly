@@ -415,30 +415,70 @@ export class GoogleSheetsService {
   }
 
   /**
-   * Detect whether the current account has write access to the spreadsheet.
-   * A 403 (INSUFFICIENT_PERMISSIONS) means "Viewer" → read-only.
+   * Verify sheet access and determine user role (Editor vs Viewer).
+   * Throws if the user's signed-in Google account has no access at all.
    */
-  async checkWritePermission(): Promise<boolean> {
-    const firstSheet = Object.values(SHEET_NAMES)[0];
-    const range = `${firstSheet}!A1`;
+  async checkSheetAccess(): Promise<{ title: string; role: "edit" | "read" }> {
+    let meta: {
+      properties?: { title?: string };
+      sheets?: { properties?: { sheetId?: number; title?: string } }[];
+    };
+
     try {
-      const data = await this.fetch<{ values?: string[][] }>(
+      meta = await this.fetch<{
+        properties?: { title?: string };
+        sheets?: { properties?: { sheetId?: number; title?: string } }[];
+      }>("/?fields=properties.title,sheets.properties(sheetId,title)", "");
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (status === 403 || status === 404) {
+        throw new Error(
+          "Access denied: This Google Sheet is not shared with your signed-in Google account. Please ensure the owner shared it with your Gmail, or switch accounts in Settings.",
+        );
+      }
+      throw error;
+    }
+
+    const title = meta.properties?.title || "Google Sheet";
+    const firstTab = meta.sheets?.[0]?.properties?.title || "purchases";
+
+    // Now test write permission on the first available tab
+    try {
+      const range = `${firstTab}!A1`;
+      const currentData = await this.fetch<{ values?: (string | number)[][] }>(
         `/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`,
         "",
       );
-      const current = data.values?.[0]?.[0] ?? "";
+      const current = currentData.values?.[0]?.[0] ?? "";
       await this.fetch(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, "", {
         range,
         majorDimension: "ROWS",
         values: [[current]],
       });
-      return true;
+      return { title, role: "edit" };
     } catch (error) {
       const status = (error as { status?: number }).status;
-      if (status === 403) return false;
-      throw error;
+      if (status === 403) {
+        return { title, role: "read" };
+      }
+      // If error is something else (e.g. range syntax on empty sheet), try metadata check
+      return { title, role: "read" };
     }
   }
+
+  /**
+   * Detect whether the current account has write access to the spreadsheet.
+   * A 403 (INSUFFICIENT_PERMISSIONS) means "Viewer" → read-only.
+   */
+  async checkWritePermission(): Promise<boolean> {
+    try {
+      const access = await this.checkSheetAccess();
+      return access.role === "edit";
+    } catch {
+      return false;
+    }
+  }
+
 
   async getSheetData(): Promise<SheetData> {
     const sheetIds = await this.getSheetIdMap();
