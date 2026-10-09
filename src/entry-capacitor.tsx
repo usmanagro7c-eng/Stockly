@@ -5,10 +5,6 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 import "./styles.css";
-import { AppGate } from "@/components/layout/AppGate";
-import { AppShell } from "@/components/layout/AppShell";
-import { Toaster } from "@/components/ui/sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const queryClient = new QueryClient();
 const router = createRouter({
@@ -26,15 +22,9 @@ declare module "@tanstack/react-router" {
 }
 
 function App() {
-  const isMobile = useIsMobile();
   return (
     <QueryClientProvider client={queryClient}>
-      <AppGate>
-        <AppShell>
-          <RouterProvider router={router} />
-        </AppShell>
-      </AppGate>
-      <Toaster position={isMobile ? "bottom-center" : "top-right"} duration={3000} closeButton />
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 }

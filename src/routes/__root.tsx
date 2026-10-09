@@ -5,6 +5,10 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
+import { AppGate } from "@/components/layout/AppGate";
+import { AppShell } from "@/components/layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function NotFoundComponent() {
   return (
@@ -63,8 +67,20 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
   );
 }
 
+function RootComponent() {
+  const isMobile = useIsMobile();
+  return (
+    <AppGate>
+      <AppShell>
+        <Outlet />
+      </AppShell>
+      <Toaster position={isMobile ? "bottom-center" : "top-right"} duration={3000} closeButton />
+    </AppGate>
+  );
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  component: () => <Outlet />,
+  component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
