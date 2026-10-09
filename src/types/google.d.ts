@@ -18,6 +18,9 @@ declare namespace google {
         scope?: string;
         expires_in?: number;
         token_type?: string;
+        error?: string;
+        error_description?: string;
+        error_uri?: string;
       }
       function initTokenClient(config: TokenClientConfig): TokenClient;
       function revoke(accessToken: string, done: () => void): void;

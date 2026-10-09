@@ -32,6 +32,13 @@ export function isNativePlatform(): boolean {
 
 let oauthInstance: google.accounts.oauth2.TokenClient | null = null;
 
+/** Result delivered to every queued OAuth waiter: a token, or the reason it failed. */
+interface TokenResult {
+  token?: string;
+  error?: string;
+  errorDescription?: string;
+}
+
 /**
  * Queue of waiters for the single Google token callback channel.
  *
@@ -42,18 +49,38 @@ let oauthInstance: google.accounts.oauth2.TokenClient | null = null;
  * registered first receives the next token response, and every waiter is
  * settled on timeout so nothing is left hanging.
  */
-let pendingCallbacks: ((token: string) => void)[] = [];
+let pendingCallbacks: ((result: TokenResult) => void)[] = [];
 
-/** Hand the next token response to the longest-waiting consumer. */
-function takeNextCallback(): ((token: string) => void) | null {
-  return pendingCallbacks.shift() ?? null;
-}
-
-/** Settle every queued waiter with `token` and empty the queue. */
-function drainCallbacks(token: string): void {
+/** Settle every queued waiter with `result` and empty the queue. */
+function drainCallbacks(result: TokenResult): void {
   const waiters = pendingCallbacks;
   pendingCallbacks = [];
-  for (const waiter of waiters) waiter(token);
+  for (const waiter of waiters) waiter(result);
+}
+
+/**
+ * Turn a Google OAuth error code into an actionable message. Most failures
+ * here are configuration mistakes in Google Cloud Console, so point at the
+ * exact fix instead of a generic "authentication failed".
+ */
+function describeGoogleAuthError(result: TokenResult): string {
+  const origin =
+    typeof window !== "undefined" && window.location ? window.location.origin : "your app origin";
+  switch (result.error) {
+    case "origin_mismatch":
+      return `Google blocked this app: the origin "${origin}" is not registered. Add it under "Authorized JavaScript origins" for this OAuth Client ID in Google Cloud Console (https://console.cloud.google.com/apis/credentials), then retry.`;
+    case "access_denied":
+      return "Google sign-in was canceled";
+    case "invalid_client":
+      return "Google rejected the Client ID. Check VITE_GOOGLE_CLIENT_ID and the OAuth client type (Web application).";
+    case "idpiframe_initialization_failed":
+      return "Google Identity Services could not initialize. Ensure third-party cookies are allowed and the origin is registered in Google Cloud Console.";
+    case undefined:
+    case "":
+      return "Google authentication failed — no access token received";
+    default:
+      return `Google authentication failed: ${result.errorDescription || result.error}`;
+  }
 }
 
 export interface AuthState {
@@ -131,7 +158,11 @@ export async function initializeOAuth(): Promise<AuthState> {
         }
         // Settle everyone: a silent renewal and an interactive sign-in that
         // were both waiting can share one response without either hanging.
-        drainCallbacks(response?.access_token || "");
+        drainCallbacks({
+          token: response?.access_token || undefined,
+          error: response?.error,
+          errorDescription: response?.error_description,
+        });
       },
     });
   }
@@ -173,16 +204,24 @@ export async function authenticate(): Promise<AuthState> {
   }
 
   const token = await new Promise<string>((resolve, reject) => {
-    const waiter = (t: string) => {
+    const waiter = (result: TokenResult) => {
       clearTimeout(timeout);
-      if (!t) reject(new Error("Google authentication failed"));
-      else resolve(t);
+      if (!result.token) reject(new Error(describeGoogleAuthError(result)));
+      else resolve(result.token);
     };
 
     const timeout = setTimeout(() => {
       const i = pendingCallbacks.indexOf(waiter);
       if (i !== -1) pendingCallbacks.splice(i, 1);
-      reject(new Error("Google authentication timed out"));
+      const origin =
+        typeof window !== "undefined" && window.location
+          ? window.location.origin
+          : "your app origin";
+      reject(
+        new Error(
+          `Google sign-in timed out. If Google showed an "Access blocked" or origin error, add "${origin}" under "Authorized JavaScript origins" for this OAuth Client ID in Google Cloud Console, then retry.`,
+        ),
+      );
     }, AUTH_TIMEOUT_MS);
 
     pendingCallbacks.push(waiter);
@@ -230,9 +269,9 @@ export async function getAccessToken(): Promise<string | null> {
   }
 
   return new Promise<string | null>((resolve) => {
-    const waiter = (t: string) => {
+    const waiter = (result: TokenResult) => {
       clearTimeout(timer);
-      resolve(t || stored);
+      resolve(result.token || stored);
     };
 
     // Falls back to the stored token so a failed or silently-declined renewal
