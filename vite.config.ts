@@ -32,6 +32,7 @@ export default defineConfig(async ({ command, mode }) => {
   plugins.push(viteReact());
 
   let envDefine: Record<string, string> = {};
+  const isVercelBuild = process.env.VERCEL === "1";
   const loadedEnv = loadEnv(mode, process.cwd(), "VITE_");
   for (const [key, value] of Object.entries(loadedEnv)) {
     envDefine[`import.meta.env.${key}`] = JSON.stringify(value);
@@ -64,6 +65,9 @@ export default defineConfig(async ({ command, mode }) => {
       host: "::",
       port: 8080,
     },
+    build: isVercelBuild
+      ? { outDir: ".vercel/output/static", emptyOutDir: true }
+      : undefined,
     plugins,
   };
 });
