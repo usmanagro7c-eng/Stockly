@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { Eye, Pencil, ShoppingCart, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -19,8 +19,9 @@ import {
 } from "@/components/common/ui-bits";
 import { useListPaging } from "@/hooks/use-list-paging";
 import { useDebounced } from "@/hooks/useDebounced";
-import { useCurrency, useInventory, useStockStore } from "@/store/stockStore";
+import { useCurrency, useInventory, useIsReadOnly, useStockStore } from "@/store/stockStore";
 import { formatDate, formatMoney, formatUnits, todayISO, toNumber } from "@/utils/format";
+
 
 export const Route = createFileRoute("/buy")({
   head: () => ({
@@ -62,6 +63,7 @@ function BuyPage() {
   const deletePurchase = useStockStore((s) => s.deletePurchase);
   const inventory = useInventory();
   const currency = useCurrency();
+  const isReadOnly = useIsReadOnly();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -98,6 +100,10 @@ function BuyPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      toast.error("Viewer mode: You have read-only access and cannot save purchases.");
+      return;
+    }
     if (!validate()) {
       toast.error("Please fill required fields");
       return;
@@ -118,6 +124,10 @@ function BuyPage() {
   };
 
   const startEdit = (id: string) => {
+    if (isReadOnly) {
+      toast.error("Viewer mode: Editing purchases is disabled.");
+      return;
+    }
     const p = purchases.find((row) => row.record_id === id);
     if (!p) return;
     setEditingId(id);
@@ -134,12 +144,17 @@ function BuyPage() {
   };
 
   const confirmDelete = async () => {
+    if (isReadOnly) {
+      toast.error("Viewer mode: Deleting purchases is disabled.");
+      return;
+    }
     if (!pendingDelete) return;
     await deletePurchase(pendingDelete);
     if (editingId === pendingDelete) reset();
     setPendingDelete(null);
     toast.success("Purchase deleted");
   };
+
 
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
@@ -165,6 +180,12 @@ function BuyPage() {
       <Panel>
         <SectionTitle>{editingId ? "Edit Purchase" : "Record New Purchase"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
+          {isReadOnly && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+              <Eye className="size-4 shrink-0" aria-hidden />
+              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying purchases is disabled.</span>
+            </div>
+          )}
           <Field label="Stock model name" htmlFor="buy-model" required error={errors.model}>
             <input
               id="buy-model"
@@ -173,6 +194,7 @@ function BuyPage() {
               value={form.model}
               onChange={(e) => set("model", e.target.value)}
               placeholder="Select existing or type a new model"
+              disabled={isReadOnly}
             />
             <datalist id="buy-models">
               {inventory.map((i) => (
@@ -188,6 +210,7 @@ function BuyPage() {
               className={inputClass}
               value={form.date}
               onChange={(e) => set("date", e.target.value)}
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -202,6 +225,7 @@ function BuyPage() {
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
               placeholder="0"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -221,6 +245,7 @@ function BuyPage() {
               value={form.buying_price}
               onChange={(e) => set("buying_price", e.target.value)}
               placeholder="0.00"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -231,6 +256,7 @@ function BuyPage() {
               value={form.supplier}
               onChange={(e) => set("supplier", e.target.value)}
               placeholder="Optional"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -241,6 +267,7 @@ function BuyPage() {
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
               placeholder="Optional"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -250,8 +277,13 @@ function BuyPage() {
           </div>
 
           <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
-            <button type="submit" className={btnPrimary}>
-              {editingId ? "Update purchase" : "Save purchase"}
+            <button
+              type="submit"
+              className={btnPrimary}
+              disabled={isReadOnly}
+              title={isReadOnly ? "Viewer mode: Read-only access" : undefined}
+            >
+              {isReadOnly ? "Read-Only (Viewer Mode)" : editingId ? "Update purchase" : "Save purchase"}
             </button>
             {editingId ? (
               <button type="button" className={btnOutline} onClick={reset}>
@@ -302,22 +334,26 @@ function BuyPage() {
                       <span className="num text-sm font-semibold">
                         {formatMoney(p.total_cost, currency)}
                       </span>
-                      <button
-                        type="button"
-                        className={btnIcon}
-                        aria-label={`Edit purchase ${p.record_id}`}
-                        onClick={() => startEdit(p.record_id)}
-                      >
-                        <Pencil className="size-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${btnIcon} text-destructive hover:text-destructive`}
-                        aria-label={`Delete purchase ${p.record_id}`}
-                        onClick={() => setPendingDelete(p.record_id)}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </button>
+                      {!isReadOnly && (
+                        <>
+                          <button
+                            type="button"
+                            className={btnIcon}
+                            aria-label={`Edit purchase ${p.record_id}`}
+                            onClick={() => startEdit(p.record_id)}
+                          >
+                            <Pencil className="size-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            aria-label={`Delete purchase ${p.record_id}`}
+                            onClick={() => setPendingDelete(p.record_id)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 border-t border-border pt-3">

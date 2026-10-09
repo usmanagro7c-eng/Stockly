@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Tag, Trash2 } from "lucide-react";
+import { Eye, Pencil, Tag, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -19,7 +19,7 @@ import {
 } from "@/components/common/ui-bits";
 import { useListPaging } from "@/hooks/use-list-paging";
 import { useDebounced } from "@/hooks/useDebounced";
-import { useCurrency, useInventory, useStockStore } from "@/store/stockStore";
+import { useCurrency, useInventory, useIsReadOnly, useStockStore } from "@/store/stockStore";
 import { formatDate, formatMoney, formatUnits, todayISO, toNumber } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +64,7 @@ function SellPage() {
   const threshold = useStockStore((s) => s.settings.low_stock_threshold);
   const inventory = useInventory();
   const currency = useCurrency();
+  const isReadOnly = useIsReadOnly();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -118,6 +119,10 @@ function SellPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      toast.error("Viewer mode: You have read-only access and cannot save sales.");
+      return;
+    }
     if (!validate()) {
       if (qty > available && form.model)
         toast.error(`Cannot sell more than available stock! Only ${formatUnits(available)} left.`);
@@ -147,6 +152,10 @@ function SellPage() {
   };
 
   const startEdit = (id: string) => {
+    if (isReadOnly) {
+      toast.error("Viewer mode: Editing sales is disabled.");
+      return;
+    }
     const s = sales.find((row) => row.record_id === id);
     if (!s) return;
     setEditingId(id);
@@ -163,11 +172,11 @@ function SellPage() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (isReadOnly || !pendingDelete) return;
     await deleteSale(pendingDelete);
     if (editingId === pendingDelete) reset();
     setPendingDelete(null);
-    toast.success("Sale deleted â€” stock restored");
+    toast.success("Sale deleted — stock restored");
   };
 
   const filtered = useMemo(() => {
@@ -192,12 +201,19 @@ function SellPage() {
       <Panel>
         <SectionTitle>{editingId ? "Edit Sale" : "Record New Sale"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
+          {isReadOnly && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+              <Eye className="size-4 shrink-0" aria-hidden />
+              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying sales is disabled.</span>
+            </div>
+          )}
           <Field label="Stock model" htmlFor="sell-model" required error={errors.model}>
             <select
               id="sell-model"
               className={inputClass}
               value={form.model}
               onChange={(e) => set("model", e.target.value)}
+              disabled={isReadOnly}
             >
               <option value="">Select a model in stock</option>
               {sellable.map((i) => (
@@ -215,6 +231,7 @@ function SellPage() {
               className={inputClass}
               value={form.date}
               onChange={(e) => set("date", e.target.value)}
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -241,6 +258,7 @@ function SellPage() {
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
               placeholder="0"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -260,6 +278,7 @@ function SellPage() {
               value={form.selling_price}
               onChange={(e) => set("selling_price", e.target.value)}
               placeholder="0.00"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -270,6 +289,7 @@ function SellPage() {
               value={form.customer}
               onChange={(e) => set("customer", e.target.value)}
               placeholder="Optional"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -280,6 +300,7 @@ function SellPage() {
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
               placeholder="Optional"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -296,14 +317,18 @@ function SellPage() {
                   estimatedProfit >= 0 ? "text-success" : "text-destructive",
                 )}
               >
-                {estimatedProfit >= 0 ? "â–² " : "â–¼ "}
+                {estimatedProfit >= 0 ? "▲ " : "▼ "}
                 {formatMoney(estimatedProfit, currency)}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
-            <button type="submit" className={btnPrimary}>
+            <button
+              type="submit"
+              className={cn(btnPrimary, isReadOnly && "cursor-not-allowed opacity-50")}
+              disabled={isReadOnly}
+            >
               {editingId ? "Update sale" : "Save sale"}
             </button>
             {editingId ? (
@@ -348,7 +373,7 @@ function SellPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{s.model}</p>
                       <p className="num text-xs text-muted-foreground">
-                        {formatUnits(s.quantity)} units Â· {s.record_id} Â· {formatDate(s.date)}
+                        {formatUnits(s.quantity)} units · {s.record_id} · {formatDate(s.date)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -362,26 +387,30 @@ function SellPage() {
                             s.profit >= 0 ? "text-success" : "text-destructive",
                           )}
                         >
-                          {s.profit >= 0 ? "â–² Profit " : "â–¼ Loss "}
+                          {s.profit >= 0 ? "▲ Profit " : "▼ Loss "}
                           {formatMoney(Math.abs(s.profit), currency)}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        className={btnIcon}
-                        aria-label={`Edit sale ${s.record_id}`}
-                        onClick={() => startEdit(s.record_id)}
-                      >
-                        <Pencil className="size-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${btnIcon} text-destructive hover:text-destructive`}
-                        aria-label={`Delete sale ${s.record_id}`}
-                        onClick={() => setPendingDelete(s.record_id)}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </button>
+                      {!isReadOnly && (
+                        <>
+                          <button
+                            type="button"
+                            className={btnIcon}
+                            aria-label={`Edit sale ${s.record_id}`}
+                            onClick={() => startEdit(s.record_id)}
+                          >
+                            <Pencil className="size-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            aria-label={`Delete sale ${s.record_id}`}
+                            onClick={() => setPendingDelete(s.record_id)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 border-t border-border pt-3">

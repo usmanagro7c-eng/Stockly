@@ -23,7 +23,7 @@ import {
   inputClass,
 } from "@/components/common/ui-bits";
 import { useDebounced } from "@/hooks/useDebounced";
-import { useCurrency, useInventory, useStockStore } from "@/store/stockStore";
+import { useCurrency, useInventory, useIsReadOnly, useStockStore } from "@/store/stockStore";
 import { ADJUSTMENT_TYPES, type AdjustmentType, type InventoryItem } from "@/types";
 import {
   formatDate,
@@ -57,6 +57,7 @@ const statusTone = (status: InventoryItem["status"]) =>
 function StockPage() {
   const inventory = useInventory();
   const currency = useCurrency();
+  const isReadOnly = useIsReadOnly();
   const [search, setSearch] = useState("");
   const [lowOnly, setLowOnly] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -80,9 +81,11 @@ function StockPage() {
         title="Stock Inventory"
         subtitle={`Estimated value ${formatMoney(totalValue, currency)}`}
         action={
-          <button type="button" className={btnPrimary} onClick={() => setAdjustOpen(true)}>
-            <Plus className="size-4" aria-hidden /> Adjust
-          </button>
+          !isReadOnly ? (
+            <button type="button" className={btnPrimary} onClick={() => setAdjustOpen(true)}>
+              <Plus className="size-4" aria-hidden /> Adjust
+            </button>
+          ) : undefined
         }
       />
 
@@ -175,6 +178,7 @@ function AdjustDialog({
   presetModel?: string;
 }) {
   const saveAdjustment = useStockStore((s) => s.saveAdjustment);
+  const isReadOnly = useIsReadOnly();
   const [model, setModel] = useState(presetModel ?? "");
   const [type, setType] = useState<AdjustmentType>("Found Stock (+)");
   const [quantity, setQuantity] = useState("");
@@ -184,6 +188,10 @@ function AdjustDialog({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      toast.error("Viewer mode: Stock adjustments are disabled.");
+      return;
+    }
     const next: Record<string, string> = {};
     const target = presetModel ?? model;
     if (!target) next.model = "Select a model";
@@ -329,6 +337,7 @@ function ModelDetail({
   const deletePurchase = useStockStore((s) => s.deletePurchase);
   const deleteSale = useStockStore((s) => s.deleteSale);
   const deleteAdjustment = useStockStore((s) => s.deleteAdjustment);
+  const isReadOnly = useIsReadOnly();
 
   const item = inventory.find((i) => i.model === model);
 
@@ -381,7 +390,7 @@ function ModelDetail({
   }, [model, purchases, sales, adjustments]);
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (isReadOnly || !pendingDelete) return;
     const { kind, id } = pendingDelete;
     if (kind === "BUY") await deletePurchase(id);
     else if (kind === "SELL") await deleteSale(id);
@@ -476,14 +485,16 @@ function ModelDetail({
                           </p>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        className={btnIcon}
-                        aria-label={`Delete ${t.kind.toLowerCase()} ${t.id}`}
-                        onClick={() => setPendingDelete({ kind: t.kind, id: t.id, model: model! })}
-                      >
-                        <Trash2 className="size-4 text-destructive" aria-hidden />
-                      </button>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          className={btnIcon}
+                          aria-label={`Delete ${t.kind.toLowerCase()} ${t.id}`}
+                          onClick={() => setPendingDelete({ kind: t.kind, id: t.id, model: model! })}
+                        >
+                          <Trash2 className="size-4 text-destructive" aria-hidden />
+                        </button>
+                      )}
                     </div>
                   </li>
                 ))}

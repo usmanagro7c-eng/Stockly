@@ -16,6 +16,9 @@ import {
   User,
   X,
   FileSpreadsheet,
+  Edit3,
+  Eye,
+  CheckCircle2,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -35,9 +38,18 @@ import {
 import { useCurrency, useStockStore } from "@/store/stockStore";
 import { buildBackup, downloadJSON, parseBackup } from "@/services/backup";
 import { hashPin, isValidPin, verifyPin } from "@/services/security";
-import { authenticate } from "@/services/google-auth";
+import {
+  authenticate,
+  getGoogleEmail,
+  getGoogleSheetTitle,
+  isAuthenticated,
+  revokeAccess,
+  setGoogleRole,
+} from "@/services/google-auth";
+import { syncManager } from "@/services/sync-manager";
 import type { BackupFile } from "@/types";
 import { format } from "date-fns";
+
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -104,24 +116,14 @@ function SettingsPage() {
   /* --- Google Sheets Sync --- */
   const [sheetUrl, setSheetUrl] = useState(settings.linked_file_name || "");
   const [syncing, setSyncing] = useState(false);
-  const [connectedEmail, setConnectedEmail] = useState<string | null>(() =>
-    typeof localStorage !== "undefined" ? localStorage.getItem("googleSheetEmail") : null,
-  );
+  const [signingIn, setSigningIn] = useState(false);
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(() => getGoogleEmail());
+  const [sheetTitle, setSheetTitle] = useState<string | null>(() => getGoogleSheetTitle());
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
   const connectGoogleSheet = useStockStore((s) => s.connectGoogleSheet);
   const syncToGoogleSheets = useStockStore((s) => s.syncToGoogleSheets);
   const syncFromGoogleSheets = useStockStore((s) => s.syncFromGoogleSheets);
   const sheetRole = useStockStore((s) => s.sheetRole);
-  const [lastSync] = useState<string | null>(() =>
-    typeof localStorage !== "undefined" ? localStorage.getItem("googleLastSync") : null,
-  );
-  const [sheetId] = useState<string | null>(() => {
-    if (typeof localStorage !== "undefined") {
-      const stored = localStorage.getItem("googleSheetId");
-      if (stored) return stored;
-    }
-    return settings.linked_file_name || null;
-  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -140,31 +142,55 @@ function SettingsPage() {
   };
 
   const extractSheetId = (url: string): string | null => {
-    // Extract sheet ID from Google Sheets URL
     const matches = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     return matches ? (matches[1] ?? null) : url.trim() || null;
+  };
+
+  const handleSignInGoogle = async () => {
+    setSigningIn(true);
+    try {
+      const auth = await authenticate();
+      setConnectedEmail(auth.email);
+      toast.success(auth.email ? `Signed in as ${auth.email}` : "Signed in with Google!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Google sign-in failed");
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  const handleSignOutGoogle = async () => {
+    try {
+      await revokeAccess();
+      setConnectedEmail(null);
+      setSheetTitle(null);
+      await updateSettings({ linked_file_name: "" });
+      toast.success("Signed out of Google");
+    } catch {
+      toast.error("Failed to sign out");
+    }
   };
 
   const handleConnectSheet = async () => {
     const id = extractSheetId(sheetUrl);
     if (!id) {
-      toast.error("Invalid Google Sheet URL");
+      toast.error("Invalid Google Sheet URL or ID");
       return;
     }
     setSyncing(true);
     try {
-      const auth = await authenticate();
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("googleSheetId", id);
-        if (auth.email) localStorage.setItem("googleSheetEmail", auth.email);
+      if (!isAuthenticated()) {
+        const auth = await authenticate();
+        setConnectedEmail(auth.email);
       }
-      setConnectedEmail(auth.email);
-      if (!auth.hasToken)
-        throw new Error("Google authentication failed — no access token received");
       await connectGoogleSheet(id);
-      // Make sure the sheet structure exists in the linked spreadsheet
-      await syncToGoogleSheets();
-      toast.success("Connected to Google Sheet!");
+      setSheetTitle(getGoogleSheetTitle());
+      const role = syncManager.getRole();
+      if (role === "read") {
+        toast.success("Connected to Google Sheet as Viewer (Read-only)!");
+      } else {
+        toast.success("Connected to Google Sheet as Editor (Full access)!");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to connect to Google Sheet");
     } finally {
@@ -173,11 +199,9 @@ function SettingsPage() {
   };
 
   const handleDisconnectSheet = async () => {
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem("googleSheetId");
-      localStorage.removeItem("googleSheetEmail");
-    }
-    setConnectedEmail(null);
+    await syncManager.setSheetId("");
+    setGoogleRole(null);
+    setSheetTitle(null);
     setSheetUrl("");
     await updateSettings({
       linked_file_name: "",
@@ -190,9 +214,6 @@ function SettingsPage() {
     setSyncing(true);
     try {
       await syncToGoogleSheets();
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("googleLastSync", new Date().toISOString());
-      }
       toast.success("Synced to Google Sheet!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
@@ -205,9 +226,6 @@ function SettingsPage() {
     setSyncing(true);
     try {
       await syncFromGoogleSheets();
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("googleLastSync", new Date().toISOString());
-      }
       toast.success("Synced from Google Sheet!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
@@ -216,9 +234,10 @@ function SettingsPage() {
     }
   };
 
+  const isConnected = Boolean(settings.linked_file_name);
   const canConnect = Boolean(sheetUrl);
-  const isConnected = Boolean(sheetId);
   const isReadOnly = sheetRole === "read";
+
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -694,119 +713,176 @@ function SettingsPage() {
       {/* Google Sheets Sync */}
       <Panel>
         <SectionTitle left={<FileSpreadsheet className="size-4" aria-hidden />}>
-          Google Sheets Sync
+          Google Sheets Sync &amp; Sharing
         </SectionTitle>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect to a shared Google Sheet for real-time sync across devices.
+          Sign in with the Gmail account to which the sheet was shared, then link your spreadsheet.
         </p>
 
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="sheet-url" className="label-xs block">
-              Google Sheet URL or ID
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="sheet-url"
-                className={inputClass}
-                value={sheetUrl}
-                onChange={handleSheetUrlChange}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-              />
-              {isConnected ? (
-                <button
-                  type="button"
-                  className={btnDanger}
-                  onClick={handleDisconnectSheet}
-                  disabled={syncing}
-                >
-                  <X className="size-4" aria-hidden /> Disconnect
-                </button>
+        <div className="mt-5 space-y-5">
+          {/* Step 1: Google Account */}
+          <div className="rounded-xl border border-border bg-elevated/60 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                    1
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">Google Account</p>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {connectedEmail
+                    ? `Active account: ${connectedEmail}`
+                    : "Sign in with the Gmail account that has access to the sheet."}
+                </p>
+              </div>
+
+              {connectedEmail ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSignInGoogle}
+                    disabled={signingIn}
+                    className={btnOutline}
+                  >
+                    Switch Account
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSignOutGoogle}
+                    className={btnDanger}
+                  >
+                    Sign Out
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
+                  onClick={handleSignInGoogle}
+                  disabled={signingIn}
                   className={btnPrimary}
-                  onClick={handleConnectSheet}
-                  disabled={!canConnect || syncing}
                 >
-                  <FileSpreadsheet className="size-4" aria-hidden /> Connect
+                  <Mail className="size-4" aria-hidden />
+                  {signingIn ? "Signing in..." : "Sign in with Google"}
                 </button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {isConnected
-                ? "Connected to Google Sheet"
-                : "Enter a Google Sheet URL with edit permissions to connect"}
-            </p>
           </div>
 
-          {isConnected && (
-            <div className="rounded-lg border border-border bg-elevated p-3">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="label-xs">Connected as</p>
-                  <p className="num mt-1 text-sm truncate">
-                    {connectedEmail || settings.user_name || "Google account"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {isReadOnly ? "Viewer · read-only" : "Editor · can edit"}
-                  </p>
+          {/* Step 2: Link Google Sheet */}
+          <div className="rounded-xl border border-border bg-elevated/60 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                2
+              </span>
+              <p className="text-sm font-semibold text-foreground">Link Google Sheet</p>
+            </div>
+
+            <div className="space-y-3">
+              <label htmlFor="sheet-url" className="label-xs block">
+                Google Sheet URL or ID
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="sheet-url"
+                  className={inputClass}
+                  value={sheetUrl}
+                  onChange={handleSheetUrlChange}
+                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                />
+                {isConnected ? (
+                  <button
+                    type="button"
+                    className={btnDanger}
+                    onClick={handleDisconnectSheet}
+                    disabled={syncing}
+                  >
+                    <X className="size-4" aria-hidden /> Disconnect
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={handleConnectSheet}
+                    disabled={!canConnect || syncing}
+                  >
+                    <FileSpreadsheet className="size-4" aria-hidden />
+                    {syncing ? "Connecting..." : "Link Sheet"}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Paste the full browser link or sheet ID of the spreadsheet shared with your Gmail.
+              </p>
+            </div>
+
+            {/* Connected Details */}
+            {isConnected && (
+              <div className="mt-4 rounded-lg border border-border bg-background p-4 space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="label-xs">Sheet Name</p>
+                    <p className="font-medium text-sm text-foreground truncate mt-0.5">
+                      {sheetTitle || "Google Sheet"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label-xs">Your Permission</p>
+                    <div className="mt-0.5">
+                      {sheetRole === "edit" ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                          <Edit3 className="size-3" /> Editor · Can view and edit
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <Eye className="size-3" /> Viewer · Read-only access
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="label-xs">Connected Account</p>
+                    <p className="font-medium text-xs text-foreground truncate mt-0.5">
+                      {connectedEmail || "Google Account"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label-xs">Last Sync</p>
+                    <p className="font-medium text-xs text-foreground mt-0.5">
+                      {settings.last_sync_time
+                        ? format(new Date(settings.last_sync_time), "dd MMM yyyy, HH:mm")
+                        : "Just now"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="label-xs">Last sync</p>
-                  <p className="num mt-1 text-sm">
-                    {lastSync ? format(new Date(lastSync), "dd MMM yyyy, HH:mm") : "Never"}
-                  </p>
-                </div>
-                <div>
-                  <p className="label-xs">Status</p>
-                  <p className="num mt-1 text-sm text-success">Connected</p>
-                </div>
-                <div>
-                  <p className="label-xs">Network</p>
-                  <p className="num mt-1 text-sm">
-                    {online ? (
-                      <span className="text-success">Online</span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        Offline — will sync on reconnect
-                      </span>
-                    )}
-                  </p>
+
+                <div className="pt-3 border-t border-border flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={btnOutline}
+                    onClick={handleSyncFromSheets}
+                    disabled={syncing}
+                  >
+                    <RotateCcw className="size-4" aria-hidden />
+                    {syncing ? "Syncing..." : "Sync from Sheets (Pull)"}
+                  </button>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={handleSyncToSheets}
+                    disabled={syncing || isReadOnly}
+                    title={isReadOnly ? "Viewer mode: You cannot edit this sheet" : undefined}
+                  >
+                    <RotateCcw className="size-4" aria-hidden />
+                    {isReadOnly ? "Write Disabled (Viewer)" : syncing ? "Pushing..." : "Sync to Sheets (Push)"}
+                  </button>
                 </div>
               </div>
-              {!online ? (
-                <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
-                  You're offline. Changes are saved on this device and will sync automatically when
-                  you reconnect.
-                </p>
-              ) : null}
-            </div>
-          )}
-
-          {isConnected && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                className={btnPrimary}
-                onClick={handleSyncToSheets}
-                disabled={syncing || isReadOnly}
-                title={isReadOnly ? "You have read-only access to this sheet" : undefined}
-              >
-                <RotateCcw className="size-4" aria-hidden /> Sync to Sheets
-              </button>
-              <button
-                type="button"
-                className={btnOutline}
-                onClick={handleSyncFromSheets}
-                disabled={syncing}
-              >
-                <RotateCcw className="size-4" aria-hidden /> Sync from Sheets
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Panel>
+
 
       <p className="text-center text-xs text-muted-foreground">
         <Mail className="size-3 inline" aria-hidden /> Data never leaves this device. Stockly is

@@ -3,6 +3,7 @@ import {
   Activity as ActivityIcon,
   AlertTriangle,
   Boxes,
+  Eye,
   Plus,
   Receipt,
   ShoppingCart,
@@ -20,7 +21,7 @@ import {
   btnOutline,
   btnPrimary,
 } from "@/components/common/ui-bits";
-import { useCurrency, useInventory, useMetrics, useStockStore } from "@/store/stockStore";
+import { useCurrency, useInventory, useIsReadOnly, useMetrics, useStockStore } from "@/store/stockStore";
 import { formatDateTime, formatMoney, formatUnits } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,7 @@ function Dashboard() {
   const metrics = useMetrics();
   const inventory = useInventory();
   const currency = useCurrency();
+  const isReadOnly = useIsReadOnly();
   const settings = useStockStore((s) => s.settings);
   const purchases = useStockStore((s) => s.purchases);
   const sales = useStockStore((s) => s.sales);
@@ -130,6 +132,13 @@ function Dashboard() {
         </div>
       </header>
 
+      {isReadOnly && (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400">
+          <Eye className="size-4 shrink-0" aria-hidden />
+          <span>Viewer Mode: Connected to Google Sheet with read-only access. You can view all records, analytics and pull sheet data.</span>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Remaining stock"
@@ -169,13 +178,16 @@ function Dashboard() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Link to="/buy" className={btnPrimary}>
-          <Plus className="size-4" aria-hidden /> Buy
+          {isReadOnly ? <ShoppingCart className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+          {isReadOnly ? "Purchases" : "Buy"}
         </Link>
         <Link to="/sell" className={btnOutline}>
-          <Plus className="size-4" aria-hidden /> Sell
+          {isReadOnly ? <Tag className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+          {isReadOnly ? "Sales" : "Sell"}
         </Link>
         <Link to="/expenses" className={btnOutline}>
-          <Plus className="size-4" aria-hidden /> Expense
+          {isReadOnly ? <Receipt className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+          {isReadOnly ? "Expenses" : "Expense"}
         </Link>
       </div>
 

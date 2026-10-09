@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Pencil, Receipt, Trash2 } from "lucide-react";
+import { Eye, Pencil, Receipt, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -19,9 +19,10 @@ import {
 } from "@/components/common/ui-bits";
 import { useListPaging } from "@/hooks/use-list-paging";
 import { useDebounced } from "@/hooks/useDebounced";
-import { useCurrency, useStockStore } from "@/store/stockStore";
+import { useCurrency, useIsReadOnly, useStockStore } from "@/store/stockStore";
 import { EXPENSE_CATEGORIES } from "@/types";
 import { formatDate, formatMoney, todayISO, toNumber } from "@/utils/format";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({
@@ -57,6 +58,7 @@ function ExpensesPage() {
   const saveExpense = useStockStore((s) => s.saveExpense);
   const deleteExpense = useStockStore((s) => s.deleteExpense);
   const currency = useCurrency();
+  const isReadOnly = useIsReadOnly();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,6 +80,10 @@ function ExpensesPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      toast.error("Viewer mode: You have read-only access and cannot save expenses.");
+      return;
+    }
     const next: Record<string, string> = {};
     if (!form.expense_type) next.expense_type = "Choose a category";
     const amount = toNumber(form.amount);
@@ -98,6 +104,10 @@ function ExpensesPage() {
   };
 
   const startEdit = (id: string) => {
+    if (isReadOnly) {
+      toast.error("Viewer mode: Editing expenses is disabled.");
+      return;
+    }
     const row = expenses.find((e) => e.record_id === id);
     if (!row) return;
     setEditingId(id);
@@ -112,7 +122,7 @@ function ExpensesPage() {
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
+    if (isReadOnly || !pendingDelete) return;
     await deleteExpense(pendingDelete);
     if (editingId === pendingDelete) reset();
     setPendingDelete(null);
@@ -143,12 +153,19 @@ function ExpensesPage() {
       <Panel>
         <SectionTitle>{editingId ? "Edit Expense" : "Record New Expense"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
+          {isReadOnly && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+              <Eye className="size-4 shrink-0" aria-hidden />
+              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying expenses is disabled.</span>
+            </div>
+          )}
           <Field label="Category" htmlFor="exp-type" required error={errors.expense_type}>
             <select
               id="exp-type"
               className={inputClass}
               value={form.expense_type}
               onChange={(e) => set("expense_type", e.target.value)}
+              disabled={isReadOnly}
             >
               <option value="">Select a category</option>
               {EXPENSE_CATEGORIES.map((c) => (
@@ -170,6 +187,7 @@ function ExpensesPage() {
               value={form.amount}
               onChange={(e) => set("amount", e.target.value)}
               placeholder="0.00"
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -180,6 +198,7 @@ function ExpensesPage() {
               className={inputClass}
               value={form.date}
               onChange={(e) => set("date", e.target.value)}
+              disabled={isReadOnly}
             />
           </Field>
 
@@ -190,11 +209,16 @@ function ExpensesPage() {
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
               placeholder="What was this for?"
+              disabled={isReadOnly}
             />
           </Field>
 
           <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
-            <button type="submit" className={btnPrimary}>
+            <button
+              type="submit"
+              className={cn(btnPrimary, isReadOnly && "cursor-not-allowed opacity-50")}
+              disabled={isReadOnly}
+            >
               {editingId ? "Update expense" : "Save expense"}
             </button>
             {editingId ? (
@@ -243,29 +267,33 @@ function ExpensesPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{e.expense_type}</p>
                       <p className="num text-xs text-muted-foreground">
-                        {e.record_id} Â· {formatDate(e.date)}
+                        {e.record_id} · {formatDate(e.date)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="num text-sm font-semibold text-destructive">
                         -{formatMoney(e.amount, currency)}
                       </span>
-                      <button
-                        type="button"
-                        className={btnIcon}
-                        aria-label={`Edit expense ${e.record_id}`}
-                        onClick={() => startEdit(e.record_id)}
-                      >
-                        <Pencil className="size-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${btnIcon} text-destructive hover:text-destructive`}
-                        aria-label={`Delete expense ${e.record_id}`}
-                        onClick={() => setPendingDelete(e.record_id)}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </button>
+                      {!isReadOnly && (
+                        <>
+                          <button
+                            type="button"
+                            className={btnIcon}
+                            aria-label={`Edit expense ${e.record_id}`}
+                            onClick={() => startEdit(e.record_id)}
+                          >
+                            <Pencil className="size-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            aria-label={`Delete expense ${e.record_id}`}
+                            onClick={() => setPendingDelete(e.record_id)}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 border-t border-border pt-3">
