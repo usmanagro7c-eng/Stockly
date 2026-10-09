@@ -383,10 +383,45 @@ export class GoogleSheetsService {
     if (typeof localStorage !== "undefined") localStorage.setItem("googleSheetToken", token);
   }
 
-  private async fetch<T = unknown>(method: string, endpoint: string, body?: unknown): Promise<T> {
+  private async fetch<T = unknown>(
+    endpointOrMethod: string,
+    endpointOrEmpty: string = "",
+    body?: unknown,
+  ): Promise<T> {
     const sheetId = this.currentSheetId;
     const token = this.currentAccessToken;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}${endpoint}`;
+
+    const HTTP_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
+    let method = "GET";
+    let endpoint = "";
+    let requestBody = body;
+
+    if (HTTP_METHODS.has(endpointOrMethod.toUpperCase())) {
+      method = endpointOrMethod.toUpperCase();
+      endpoint = endpointOrEmpty;
+    } else {
+      endpoint = endpointOrMethod;
+      if (body !== undefined) {
+        requestBody = body;
+        method = endpoint.includes("/values/") ? "PUT" : "POST";
+      } else if (endpointOrEmpty && typeof endpointOrEmpty === "object") {
+        requestBody = endpointOrEmpty;
+        method = endpoint.includes("/values/") ? "PUT" : "POST";
+      } else {
+        method = "GET";
+      }
+    }
+
+    let path = endpoint;
+    if (path.startsWith("/?")) {
+      path = path.slice(1);
+    } else if (path.startsWith("/:")) {
+      path = path.slice(1);
+    } else if (!path.startsWith("/") && !path.startsWith("?")) {
+      path = `/${path}`;
+    }
+
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}${path}`;
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -397,14 +432,14 @@ export class GoogleSheetsService {
       headers,
     };
 
-    if (body) {
-      options.body = JSON.stringify(body);
+    if (requestBody) {
+      options.body = JSON.stringify(requestBody);
     }
 
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       const message = error.error?.message || `Google Sheets API error: ${response.status}`;
       const err = new Error(message) as Error & { status?: number };
       err.status = response.status;
