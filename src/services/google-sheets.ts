@@ -527,7 +527,7 @@ export class GoogleSheetsService {
     const results = await Promise.all(
       names.map(async (sheetName) => {
         const columns = SHEET_COLUMNS[sheetName as keyof typeof SHEET_COLUMNS];
-        const range = `${sheetName}!A${columnRangeEnd(columns.length)}`;
+        const range = `${sheetName}!A:${columnRangeEnd(columns.length)}`;
         const data = await this.fetch<{ values?: string[][] }>(
           `/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`,
           "",
@@ -659,7 +659,7 @@ export class GoogleSheetsService {
 
   /** Row index of the last row with content in a tab, or -1 when it is empty. */
   private async findLastRowIndex(sheetName: string, columnCount: number): Promise<number> {
-    const range = `${sheetName}!A${columnRangeEnd(columnCount)}`;
+    const range = `${sheetName}!A:${columnRangeEnd(columnCount)}`;
     const meta = await this.fetch<{ values?: unknown[][] }>(
       `/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`,
       "",
