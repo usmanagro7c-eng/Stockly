@@ -1,29 +1,56 @@
-# Welcome to your Lovable project
+# Stockly
 
-This project was built with [Lovable](https://lovable.dev).
+Stockly is an offline-first inventory, sales and profit manager for small retail shops. It tracks purchases, sales, stock, adjustments and profit, and can sync data to Google Sheets.
 
-## Build with Lovable
+## Tech Stack
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- TanStack Start (React + SSR)
+- TypeScript
+- Tailwind CSS
+- Dexie (IndexedDB persistence)
+- Capacitor (Android & iOS)
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and npm (or bun).
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
 
-## Built with
+The dev server runs at http://localhost:8080.
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Google Sheets Sync
+
+Google Sheets sync uses Google Identity Services. To enable it:
+
+1. Create an OAuth 2.0 Client ID in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Add an **Authorized JavaScript origin** for every URL you open the app from (e.g. `http://localhost:8080`, your production domain). Origins must match exactly with no trailing slash.
+3. Enable the **Google Sheets API** for the project.
+4. Set the Client ID in your environment:
+
+   ```sh
+   VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+   ```
+
+For native Android/iOS builds, register additional OAuth clients (Android: package name + SHA-1; iOS: bundle ID) in the same Google Cloud project.
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` — production build
+- `npm run preview` — preview the production build
+- `npm run lint` — run ESLint
+- `npm run typecheck` — run TypeScript type checking
+- `npm run test` — run tests
+
+## Native Builds
+
+```sh
+npm run cap:sync
+npm run cap:open:android
+npm run cap:open:ios
+```
