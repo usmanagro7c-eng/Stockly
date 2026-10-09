@@ -456,14 +456,12 @@ export class GoogleSheetsService {
   async checkSheetAccess(): Promise<{ title: string; role: "edit" | "read" }> {
     let meta: {
       properties?: { title?: string };
-      sheets?: { properties?: { sheetId?: number; title?: string } }[];
     };
 
     try {
       meta = await this.fetch<{
         properties?: { title?: string };
-        sheets?: { properties?: { sheetId?: number; title?: string } }[];
-      }>("/?fields=properties.title,sheets.properties(sheetId,title)", "");
+      }>("/?fields=properties.title", "");
     } catch (error) {
       const status = (error as { status?: number }).status;
       if (status === 403 || status === 404) {
@@ -475,20 +473,12 @@ export class GoogleSheetsService {
     }
 
     const title = meta.properties?.title || "Google Sheet";
-    const firstTab = meta.sheets?.[0]?.properties?.title || "purchases";
 
-    // Now test write permission on the first available tab
+    // Test write permission via :batchUpdate (empty requests array).
+    // Viewers receive 403 PERMISSION_DENIED immediately, while Editors/Owners succeed.
     try {
-      const range = `${firstTab}!A1`;
-      const currentData = await this.fetch<{ values?: (string | number)[][] }>(
-        `/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`,
-        "",
-      );
-      const current = currentData.values?.[0]?.[0] ?? "";
-      await this.fetch(`/values/${encodeURIComponent(range)}?valueInputOption=RAW`, "", {
-        range,
-        majorDimension: "ROWS",
-        values: [[current]],
+      await this.fetch<{ replies?: unknown[] }>("/:batchUpdate", "", {
+        requests: [],
       });
       return { title, role: "edit" };
     } catch (error) {
@@ -496,7 +486,6 @@ export class GoogleSheetsService {
       if (status === 403) {
         return { title, role: "read" };
       }
-      // If error is something else (e.g. range syntax on empty sheet), try metadata check
       return { title, role: "read" };
     }
   }
