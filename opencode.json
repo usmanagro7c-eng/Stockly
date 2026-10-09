@@ -1,0 +1,316 @@
+﻿{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "9router": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "9Router",
+      "options": {
+        "baseURL": "http://127.0.0.1:20128/v1",
+        "apiKey": "{env:ROUTER_API_KEY}"
+      },
+      "models": {
+        "claude": {
+          "name": "claude"
+        },
+        "openrouter/nvidia/nemotron-3.5-lightning:free": {
+          "name": "openrouter/nvidia/nemotron-3.5-lightning:free"
+        },
+        "openrouter/dots-studio/dots-3-note-preview:free": {
+          "name": "openrouter/dots-studio/dots-3-note-preview:free"
+        },
+        "openrouter/poolside/laguna-s-2.1:free": {
+          "name": "openrouter/poolside/laguna-s-2.1:free"
+        },
+        "openrouter/poolside/laguna-xs-2.1:free": {
+          "name": "openrouter/poolside/laguna-xs-2.1:free"
+        },
+        "openrouter/cohere/north-mini-code:free": {
+          "name": "openrouter/cohere/north-mini-code:free"
+        },
+        "openrouter/z-ai/glm-5.2:free": {
+          "name": "openrouter/z-ai/glm-5.2:free"
+        },
+        "openrouter/qwen/qwen3-coder:free": {
+          "name": "openrouter/qwen/qwen3-coder:free"
+        },
+        "openrouter/nvidia/nemotron-3-super-120b-a12b:free": {
+          "name": "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        },
+        "openrouter/google/gemma-4-31b-it:free": {
+          "name": "openrouter/google/gemma-4-31b-it:free"
+        },
+        "openrouter/qwen/qwen3-next-80b-a3b-instruct:free": {
+          "name": "openrouter/qwen/qwen3-next-80b-a3b-instruct:free"
+        },
+        "openrouter/google/gemma-4-26b-a4b-it:free": {
+          "name": "openrouter/google/gemma-4-26b-a4b-it:free"
+        },
+        "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free": {
+          "name": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+          "name": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+        },
+        "openrouter/nvidia/nemotron-3-nano-30b-a3b:free": {
+          "name": "openrouter/nvidia/nemotron-3-nano-30b-a3b:free"
+        },
+        "openrouter/openrouter/owl-alpha": {
+          "name": "openrouter/openrouter/owl-alpha"
+        },
+        "openrouter/google/lyria-3-pro-preview": {
+          "name": "openrouter/google/lyria-3-pro-preview"
+        },
+        "openrouter/google/lyria-3-clip-preview": {
+          "name": "openrouter/google/lyria-3-clip-preview"
+        },
+        "openrouter/nex-agi/nex-n2-pro:free": {
+          "name": "openrouter/nex-agi/nex-n2-pro:free"
+        },
+        "openrouter/poolside/laguna-xs.2:free": {
+          "name": "openrouter/poolside/laguna-xs.2:free"
+        },
+        "openrouter/poolside/laguna-m.1:free": {
+          "name": "openrouter/poolside/laguna-m.1:free"
+        },
+        "openrouter/openrouter/free": {
+          "name": "openrouter/openrouter/free"
+        },
+
+        "gemini/gemini-3.7-flash": {
+          "name": "gemini/gemini-3.7-flash"
+        },
+        "gemini/gemini-3.6-flash": {
+          "name": "gemini/gemini-3.6-flash"
+        },
+        "gemini/gemini-3.5-flash-lite": {
+          "name": "gemini/gemini-3.5-flash-lite"
+        },
+        "gemini/gemini-3.1-pro-preview": {
+          "name": "gemini/gemini-3.1-pro-preview"
+        },
+        "gemini/gemini-3.1-flash-lite-preview": {
+          "name": "gemini/gemini-3.1-flash-lite-preview"
+        },
+        "gemini/gemini-3-flash-preview": {
+          "name": "gemini/gemini-3-flash-preview"
+        },
+        "gemini/gemma-4-31b-it": {
+          "name": "gemini/gemma-4-31b-it"
+        },
+
+        "groq/llama-3.3-70b-versatile": {
+          "name": "groq/llama-3.3-70b-versatile"
+        },
+        "groq/meta-llama/llama-4-maverick-17b-128e-instruct": {
+          "name": "groq/meta-llama/llama-4-maverick-17b-128e-instruct"
+        },
+        "groq/qwen/qwen3-32b": {
+          "name": "groq/qwen/qwen3-32b"
+        },
+        "groq/openai/gpt-oss-120b": {
+          "name": "groq/openai/gpt-oss-120b"
+        },
+
+        "ds/deepseek-v4-pro": {
+          "name": "ds/deepseek-v4-pro"
+        },
+        "ds/deepseek-v4-pro-max": {
+          "name": "ds/deepseek-v4-pro-max"
+        },
+        "ds/deepseek-v4-pro-none": {
+          "name": "ds/deepseek-v4-pro-none"
+        },
+        "ds/deepseek-v4-flash": {
+          "name": "ds/deepseek-v4-flash"
+        },
+        "ds/deepseek-chat": {
+          "name": "ds/deepseek-chat"
+        },
+        "ds/deepseek-reasoner": {
+          "name": "ds/deepseek-reasoner"
+        },
+
+        "ollama/gpt-oss:120b": {
+          "name": "ollama/gpt-oss:120b"
+        },
+        "ollama/kimi-k2.5": {
+          "name": "ollama/kimi-k2.5"
+        },
+        "ollama/glm-5": {
+          "name": "ollama/glm-5"
+        },
+        "ollama/minimax-m2.5": {
+          "name": "ollama/minimax-m2.5"
+        },
+        "ollama/glm-4.7-flash": {
+          "name": "ollama/glm-4.7-flash"
+        },
+        "ollama/qwen3.5": {
+          "name": "ollama/qwen3.5"
+        },
+        "ollama/minimax-m3": {
+          "name": "ollama/minimax-m3"
+        },
+
+        "kr/auto": {
+          "name": "kr/auto"
+        },
+        "kr/auto-thinking": {
+          "name": "kr/auto-thinking"
+        },
+        "kr/claude-sonnet-4.5": {
+          "name": "kr/claude-sonnet-4.5"
+        },
+        "kr/claude-sonnet-4.5-thinking": {
+          "name": "kr/claude-sonnet-4.5-thinking"
+        },
+        "kr/claude-sonnet-4.5-agentic": {
+          "name": "kr/claude-sonnet-4.5-agentic"
+        },
+        "kr/claude-sonnet-4.5-thinking-agentic": {
+          "name": "kr/claude-sonnet-4.5-thinking-agentic"
+        },
+        "kr/claude-sonnet-4": {
+          "name": "kr/claude-sonnet-4"
+        },
+        "kr/claude-sonnet-4-thinking": {
+          "name": "kr/claude-sonnet-4-thinking"
+        },
+        "kr/claude-sonnet-4-agentic": {
+          "name": "kr/claude-sonnet-4-agentic"
+        },
+        "kr/claude-sonnet-4-thinking-agentic": {
+          "name": "kr/claude-sonnet-4-thinking-agentic"
+        },
+        "kr/claude-haiku-4.5": {
+          "name": "kr/claude-haiku-4.5"
+        },
+        "kr/claude-haiku-4.5-thinking": {
+          "name": "kr/claude-haiku-4.5-thinking"
+        },
+        "kr/claude-haiku-4.5-agentic": {
+          "name": "kr/claude-haiku-4.5-agentic"
+        },
+        "kr/claude-haiku-4.5-thinking-agentic": {
+          "name": "kr/claude-haiku-4.5-thinking-agentic"
+        },
+        "kr/deepseek-3.2": {
+          "name": "kr/deepseek-3.2"
+        },
+        "kr/deepseek-3.2-thinking": {
+          "name": "kr/deepseek-3.2-thinking"
+        },
+        "kr/deepseek-3.2-agentic": {
+          "name": "kr/deepseek-3.2-agentic"
+        },
+        "kr/deepseek-3.2-thinking-agentic": {
+          "name": "kr/deepseek-3.2-thinking-agentic"
+        },
+        "kr/minimax-m2.5": {
+          "name": "kr/minimax-m2.5"
+        },
+        "kr/minimax-m2.5-thinking": {
+          "name": "kr/minimax-m2.5-thinking"
+        },
+        "kr/minimax-m2.5-agentic": {
+          "name": "kr/minimax-m2.5-agentic"
+        },
+        "kr/minimax-m2.5-thinking-agentic": {
+          "name": "kr/minimax-m2.5-thinking-agentic"
+        },
+        "kr/minimax-m2.1": {
+          "name": "kr/minimax-m2.1"
+        },
+        "kr/minimax-m2.1-thinking": {
+          "name": "kr/minimax-m2.1-thinking"
+        },
+        "kr/minimax-m2.1-agentic": {
+          "name": "kr/minimax-m2.1-agentic"
+        },
+        "kr/minimax-m2.1-thinking-agentic": {
+          "name": "kr/minimax-m2.1-thinking-agentic"
+        },
+        "kr/glm-5": {
+          "name": "kr/glm-5"
+        },
+        "kr/glm-5-thinking": {
+          "name": "kr/glm-5-thinking"
+        },
+        "kr/glm-5-agentic": {
+          "name": "kr/glm-5-agentic"
+        },
+        "kr/glm-5-thinking-agentic": {
+          "name": "kr/glm-5-thinking-agentic"
+        },
+        "kr/qwen3-coder-next": {
+          "name": "kr/qwen3-coder-next"
+        },
+        "kr/qwen3-coder-next-thinking": {
+          "name": "kr/qwen3-coder-next-thinking"
+        },
+        "kr/qwen3-coder-next-agentic": {
+          "name": "kr/qwen3-coder-next-agentic"
+        },
+        "kr/qwen3-coder-next-thinking-agentic": {
+          "name": "kr/qwen3-coder-next-thinking-agentic"
+        },
+
+        "kimchi/deepseek-v4-flash": {
+          "name": "kimchi/deepseek-v4-flash"
+        },
+        "kimchi/minimax-m3": {
+          "name": "kimchi/minimax-m3"
+        },
+        "kimchi/nemotron-3-ultra-fp4": {
+          "name": "kimchi/nemotron-3-ultra-fp4"
+        },
+        "kimchi/kimi-k2.7": {
+          "name": "kimchi/kimi-k2.7"
+        },
+        "kimchi/deepseek-v4-flash-0731": {
+          "name": "kimchi/deepseek-v4-flash-0731"
+        },
+
+        "cf/@cf/meta/llama-3.2-1b-instruct": {
+          "name": "cf/@cf/meta/llama-3.2-1b-instruct"
+        },
+        "cf/@cf/meta/llama-3.2-3b-instruct": {
+          "name": "cf/@cf/meta/llama-3.2-3b-instruct"
+        },
+        "cf/@cf/meta/llama-3.1-8b-instruct-fp8-fast": {
+          "name": "cf/@cf/meta/llama-3.1-8b-instruct-fp8-fast"
+        },
+        "cf/@cf/meta/llama-3.1-8b-instruct-awq": {
+          "name": "cf/@cf/meta/llama-3.1-8b-instruct-awq"
+        },
+        "cf/@cf/mistralai/mistral-small-3.1-24b-instruct": {
+          "name": "cf/@cf/mistralai/mistral-small-3.1-24b-instruct"
+        },
+        "cf/@cf/meta/llama-3.1-70b-instruct-fp8-fast": {
+          "name": "cf/@cf/meta/llama-3.1-70b-instruct-fp8-fast"
+        },
+        "cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast": {
+          "name": "cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+        },
+        "cf/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+          "name": "cf/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"
+        },
+        "cf/@cf/moonshotai/kimi-k2.5": {
+          "name": "cf/@cf/moonshotai/kimi-k2.5"
+        },
+        "cf/@cf/moonshotai/kimi-k2.6": {
+          "name": "cf/@cf/moonshotai/kimi-k2.6"
+        },
+        "cf/@cf/zai-org/glm-4.7-flash": {
+          "name": "cf/@cf/zai-org/glm-4.7-flash"
+        },
+        "cf/@cf/qwen/qwq-32b": {
+          "name": "cf/@cf/qwen/qwq-32b"
+        },
+        "cf/@cf/qwen/qwen2.5-coder-32b-instruct": {
+          "name": "cf/@cf/qwen/qwen2.5-coder-32b-instruct"
+        }
+      }
+    }
+  }
+}
