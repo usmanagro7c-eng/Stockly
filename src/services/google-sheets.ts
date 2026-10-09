@@ -436,7 +436,21 @@ export class GoogleSheetsService {
       options.body = JSON.stringify(requestBody);
     }
 
-    const response = await fetch(url, options);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    options.signal = controller.signal;
+
+    let response: Response;
+    try {
+      response = await fetch(url, options);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error("Request to Google Sheets timed out (15s). Please check your internet connection.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -474,11 +488,21 @@ export class GoogleSheetsService {
 
     const title = meta.properties?.title || "Google Sheet";
 
-    // Test write permission via :batchUpdate (empty requests array).
-    // Viewers receive 403 PERMISSION_DENIED immediately, while Editors/Owners succeed.
+    // Test write permission by re-asserting the current title in a :batchUpdate.
+    // This is a 100% valid Request shape that applies zero actual changes,
+    // but tests write permission cleanly. Viewers receive 403 immediately.
     try {
       await this.fetch<{ replies?: unknown[] }>("/:batchUpdate", "", {
-        requests: [],
+        requests: [
+          {
+            updateSpreadsheetProperties: {
+              properties: {
+                title,
+              },
+              fields: "title",
+            },
+          },
+        ],
       });
       return { title, role: "edit" };
     } catch (error) {
