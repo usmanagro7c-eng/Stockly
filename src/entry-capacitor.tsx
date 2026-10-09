@@ -40,7 +40,12 @@ function App() {
 }
 
 if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((reg) => {
+      reg.update().catch(() => undefined);
+    })
+    .catch(() => undefined);
 }
 
 createRoot(document.getElementById("root")!).render(
