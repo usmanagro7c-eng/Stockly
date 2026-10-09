@@ -1,19 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-
-import appCss from "../styles.css?url";
-import { AppGate } from "@/components/layout/AppGate";
-import { AppShell } from "@/components/layout/AppShell";
-import { Toaster } from "@/components/ui/sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 function NotFoundComponent() {
   return (
@@ -73,79 +64,7 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
-      },
-      { title: "Stockly — Inventory & Profit Manager" },
-      {
-        name: "description",
-        content:
-          "Stockly is an offline-first inventory, sales and profit manager for small retail shops.",
-      },
-      { name: "theme-color", content: "#1a1f26" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Stockly" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "mobile-web-app-capable", content: "yes" },
-      { property: "og:title", content: "Stockly — Inventory & Profit Manager" },
-      {
-        property: "og:description",
-        content: "Track purchases, sales, stock and profit — fully offline.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
-      { rel: "icon", href: "/icons/icon-192.png", type: "image/png" },
-      { rel: "icon", href: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
+  component: () => <Outlet />,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-
-function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-  const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-    }
-  }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AppGate>
-        <AppShell>
-          {/* Required: nested routes render here. */}
-          <Outlet />
-        </AppShell>
-      </AppGate>
-      <Toaster position={isMobile ? "bottom-center" : "top-right"} duration={3000} closeButton />
-    </QueryClientProvider>
-  );
-}
