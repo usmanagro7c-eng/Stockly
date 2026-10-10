@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   Edit3,
   Eye,
+  RefreshCw,
   CheckCircle2,
   Sun,
   Moon,
@@ -51,9 +52,11 @@ import { buildBackup, downloadJSON, parseBackup } from "@/services/backup";
 import { hashPin, isValidPin, verifyPin } from "@/services/security";
 import {
   authenticate,
+  getAccessToken,
   getGoogleEmail,
   getGoogleSheetTitle,
   isAuthenticated,
+  isTokenValid,
   revokeAccess,
   setGoogleRole,
 } from "@/services/google-auth";
@@ -141,7 +144,9 @@ function SettingsPage() {
   const connectGoogleSheet = useStockStore((s) => s.connectGoogleSheet);
   const syncToGoogleSheets = useStockStore((s) => s.syncToGoogleSheets);
   const syncFromGoogleSheets = useStockStore((s) => s.syncFromGoogleSheets);
+  const refreshSheetPermission = useStockStore((s) => s.refreshSheetPermission);
   const sheetRole = useStockStore((s) => s.sheetRole);
+  const [refreshingPerms, setRefreshingPerms] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -169,6 +174,14 @@ function SettingsPage() {
     try {
       const auth = await authenticate();
       setConnectedEmail(auth.email);
+      if (syncManager.isConnected()) {
+        try {
+          await refreshSheetPermission();
+          setSheetTitle(getGoogleSheetTitle());
+        } catch {
+          // ignore
+        }
+      }
       toast.success(auth.email ? `Signed in as ${auth.email}` : "Signed in with Google!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Google sign-in failed");
@@ -190,9 +203,29 @@ function SettingsPage() {
   };
 
   const ensureAuth = async () => {
-    if (!isAuthenticated()) {
+    const token = await getAccessToken();
+    if (!token || !isTokenValid()) {
       const auth = await authenticate();
       setConnectedEmail(auth.email);
+    }
+  };
+
+  const handleRefreshPermissions = async () => {
+    setRefreshingPerms(true);
+    try {
+      await ensureAuth();
+      await refreshSheetPermission();
+      setSheetTitle(getGoogleSheetTitle());
+      const role = syncManager.getRole();
+      if (role === "edit") {
+        toast.success("Permission verified: Editor (Full access)");
+      } else {
+        toast.info("Permission verified: Viewer (Read-only)");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify permission");
+    } finally {
+      setRefreshingPerms(false);
     }
   };
 
@@ -1067,7 +1100,19 @@ function SettingsPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="label-xs">Your Permission</p>
+                    <div className="flex items-center justify-between">
+                      <p className="label-xs">Your Permission</p>
+                      <button
+                        type="button"
+                        onClick={handleRefreshPermissions}
+                        disabled={refreshingPerms || syncing}
+                        className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-50"
+                        title="Re-check permissions"
+                      >
+                        <RefreshCw className={cn("size-3", refreshingPerms && "animate-spin")} />
+                        Re-check
+                      </button>
+                    </div>
                     <div className="mt-0.5">
                       {sheetRole === "edit" ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">

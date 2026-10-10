@@ -182,9 +182,13 @@ export class SyncManager {
 
     try {
       await sheetsService.ensureSheetsExist();
-    } catch {
-      this.setRole("read");
-      throw new Error("Syncing failed — this Google account appears to have read-only access");
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status === 403) {
+        this.setRole("read");
+        throw new Error("Syncing failed — this Google account appears to have read-only access");
+      }
+      throw err;
     }
 
     const sheetData = await sheetsService.getSheetData();

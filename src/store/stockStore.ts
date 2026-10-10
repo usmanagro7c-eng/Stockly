@@ -537,8 +537,15 @@ export const useStockStore = create<State>((set, get) => ({
 
   refreshSheetPermission: async () => {
     if (!get().settings.linked_file_name && !syncManager.isConnected()) return;
-    const role = await syncManager.detectPermission().catch(() => null);
-    set({ sheetRole: role });
+    try {
+      const role = await syncManager.detectPermission();
+      set({ sheetRole: role });
+    } catch {
+      const existing = syncManager.getRole();
+      if (existing) {
+        set({ sheetRole: existing });
+      }
+    }
   },
 
   syncToGoogleSheets: async (log = true) => {

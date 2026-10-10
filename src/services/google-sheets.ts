@@ -1,4 +1,5 @@
 import type { Purchase, Sale, Expense, Adjustment, ChangeLog, Investment } from "@/types";
+import { getGoogleRole, refreshAccessTokenSilently } from "./google-auth";
 
 const SHEET_NAMES = {
   purchases: "purchases",
@@ -412,8 +413,12 @@ export class GoogleSheetsService {
   }
 
   private get currentAccessToken(): string | null {
-    if (this.accessToken) return this.accessToken;
-    return typeof localStorage !== "undefined" ? localStorage.getItem("googleSheetToken") : null;
+    const stored = typeof localStorage !== "undefined" ? localStorage.getItem("googleSheetToken") : null;
+    if (stored) {
+      this.accessToken = stored;
+      return stored;
+    }
+    return this.accessToken;
   }
 
   async setSheetId(id: string): Promise<void> {
@@ -496,6 +501,33 @@ export class GoogleSheetsService {
     }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const refreshedToken = await refreshAccessTokenSilently().catch(() => null);
+        if (refreshedToken && refreshedToken !== token) {
+          this.accessToken = refreshedToken;
+          const retryHeaders: HeadersInit = {
+            ...headers,
+            Authorization: `Bearer ${refreshedToken}`,
+          };
+          const retryController = new AbortController();
+          const retryTimer = setTimeout(() => retryController.abort(), 15_000);
+          try {
+            const retryRes = await fetch(url, {
+              ...options,
+              headers: retryHeaders,
+              signal: retryController.signal,
+            });
+            if (retryRes.ok) {
+              return retryRes.json() as Promise<T>;
+            }
+          } catch {
+            // fall through to error handling
+          } finally {
+            clearTimeout(retryTimer);
+          }
+        }
+      }
+
       const error = await response.json().catch(() => ({}));
       const message = error.error?.message || `Google Sheets API error: ${response.status}`;
       const err = new Error(message) as Error & { status?: number };
@@ -555,10 +587,20 @@ export class GoogleSheetsService {
       return { title, role: "edit" };
     } catch (error) {
       const status = (error as { status?: number }).status;
+      if (status === 401) {
+        throw new Error(
+          "Your Google session has expired. Please sign in again with Google in Settings.",
+        );
+      }
       if (status === 403) {
         return { title, role: "read" };
       }
-      return { title, role: "read" };
+      // On network timeout, rate limit (429), or 5xx, preserve current role to avoid false viewer demotion
+      const current = getGoogleRole();
+      if (current) {
+        return { title, role: current };
+      }
+      throw error;
     }
   }
 
@@ -571,10 +613,10 @@ export class GoogleSheetsService {
       const access = await this.checkSheetAccess();
       return access.role === "edit";
     } catch {
-      return false;
+      const current = getGoogleRole();
+      return current === "edit";
     }
   }
-
 
   async getSheetData(): Promise<SheetData> {
     const sheetIds = await this.getSheetIdMap();
