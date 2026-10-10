@@ -173,7 +173,7 @@ function ExpensesPage() {
         action={
           <button
             type="button"
-            className={btnOutline}
+            className={cn(btnOutline, "w-full sm:w-auto tap-active")}
             onClick={() => {
               exportExpensesReportExcel(expenses, currency);
               toast.success("Expenses Excel sheet downloaded!");
@@ -252,14 +252,14 @@ function ExpensesPage() {
           <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row pt-1">
             <button
               type="submit"
-              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
+              className={cn(btnPrimary, "w-full sm:w-auto tap-active", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
               <Receipt className="size-4" aria-hidden />
               {editingId ? "Update Expense" : "Save Expense"}
             </button>
             {editingId && (
-              <button type="button" className={btnOutline} onClick={reset}>
+              <button type="button" className={cn(btnOutline, "tap-active")} onClick={reset}>
                 Cancel
               </button>
             )}

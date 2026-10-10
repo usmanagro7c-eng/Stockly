@@ -129,14 +129,14 @@ function HistoryPage() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             {KINDS.map((k) => (
               <button
                 key={k}
                 type="button"
                 onClick={() => setKind(k)}
                 className={cn(
-                  "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                  "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                   kind === k
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",

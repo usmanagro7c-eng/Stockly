@@ -297,25 +297,25 @@ function SellPage() {
                 )}
               </div>
               {available > 0 && !isReadOnly && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => addQty(1)}
-                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                    className="rounded-lg border border-border/80 bg-elevated px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground tap-active"
                   >
                     +1
                   </button>
                   <button
                     type="button"
                     onClick={() => addQty(5)}
-                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                    className="rounded-lg border border-border/80 bg-elevated px-2 py-0.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground tap-active"
                   >
                     +5
                   </button>
                   <button
                     type="button"
                     onClick={setMaxQty}
-                    className="rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 active:scale-95"
+                    className="rounded-lg border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20 tap-active"
                   >
                     Max
                   </button>
@@ -438,14 +438,14 @@ function SellPage() {
           <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row pt-1">
             <button
               type="submit"
-              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
+              className={cn(btnPrimary, "w-full sm:w-auto tap-active", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
               <Tag className="size-4" aria-hidden />
               {editingId ? "Update Sale" : "Save Sale"}
             </button>
             {editingId && (
-              <button type="button" className={btnOutline} onClick={reset}>
+              <button type="button" className={cn(btnOutline, "tap-active")} onClick={reset}>
                 Cancel
               </button>
             )}

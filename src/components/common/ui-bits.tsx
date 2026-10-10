@@ -218,7 +218,7 @@ export function LoadMore({
         <button
           type="button"
           onClick={onLoadMore}
-          className="min-h-12 w-full rounded-2xl border border-border/80 bg-elevated/60 text-sm font-semibold transition-all hover:bg-accent active:scale-[0.98]"
+          className="min-h-12 w-full rounded-2xl border border-border/80 bg-elevated/60 text-sm font-semibold transition-all hover:bg-accent tap-active cursor-pointer"
         >
           Load {Math.min(LIST_PAGE_SIZE, remaining)} more ({remaining} remaining)
         </button>

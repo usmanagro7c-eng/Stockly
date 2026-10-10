@@ -244,11 +244,11 @@ function ReportsPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
             {/* Sales Excel */}
             <button
               type="button"
-              className={btnPrimary}
+              className={cn(btnPrimary, "tap-active text-xs sm:text-sm")}
               onClick={() => {
                 exportSalesReportExcel(data.sales, currency, rangeLabel);
                 toast.success("Sales Excel report downloaded!");
@@ -260,7 +260,7 @@ function ReportsPage() {
             {/* Print / PDF */}
             <button
               type="button"
-              className={btnOutline}
+              className={cn(btnOutline, "tap-active text-xs sm:text-sm")}
               onClick={() => {
                 printSalesReportPDF({
                   shopName,
@@ -284,7 +284,7 @@ function ReportsPage() {
             {/* Stock Inventory Excel */}
             <button
               type="button"
-              className={btnOutline}
+              className={cn(btnOutline, "tap-active text-xs sm:text-sm")}
               onClick={() => {
                 exportStockInventoryExcel(inventory, currency, threshold);
                 toast.success("Stock Inventory Excel downloaded!");
@@ -296,7 +296,7 @@ function ReportsPage() {
             {/* Expenses Excel */}
             <button
               type="button"
-              className={btnOutline}
+              className={cn(btnOutline, "tap-active text-xs sm:text-sm")}
               onClick={() => {
                 exportExpensesReportExcel(data.expenses, currency, rangeLabel);
                 toast.success("Expenses Excel sheet downloaded!");
@@ -308,7 +308,7 @@ function ReportsPage() {
             {/* Master Business Workbook */}
             <button
               type="button"
-              className={cn(btnOutline, "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10")}
+              className={cn(btnOutline, "col-span-2 sm:col-span-1 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 tap-active text-xs sm:text-sm")}
               onClick={() => {
                 exportCompleteBusinessWorkbook(
                   { inventory, sales: data.sales, purchases: data.purchases, expenses: data.expenses, investments },
@@ -329,12 +329,12 @@ function ReportsPage() {
           <SectionTitle left={<Calendar className="size-4" />}>Report Date Filter</SectionTitle>
 
           {/* Quick preset chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             <button
               type="button"
               onClick={() => setRangePreset("ALL")}
               className={cn(
-                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 preset === "ALL"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
@@ -346,7 +346,7 @@ function ReportsPage() {
               type="button"
               onClick={() => setRangePreset("TODAY")}
               className={cn(
-                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 preset === "TODAY"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
@@ -358,7 +358,7 @@ function ReportsPage() {
               type="button"
               onClick={() => setRangePreset("WEEK")}
               className={cn(
-                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 preset === "WEEK"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
@@ -370,7 +370,7 @@ function ReportsPage() {
               type="button"
               onClick={() => setRangePreset("MONTH")}
               className={cn(
-                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 preset === "MONTH"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",

@@ -94,10 +94,10 @@ function StockPage() {
         title="Stock Inventory"
         subtitle="On-hand inventory & valuation."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full sm:w-auto items-center gap-2">
             <button
               type="button"
-              className={btnOutline}
+              className={cn(btnOutline, "flex-1 sm:flex-initial tap-active")}
               onClick={() => {
                 exportStockInventoryExcel(inventory, currency, threshold);
                 toast.success("Stock Inventory Excel downloaded!");
@@ -108,7 +108,7 @@ function StockPage() {
             {!isReadOnly && (
               <button
                 type="button"
-                className={btnPrimary}
+                className={cn(btnPrimary, "flex-1 sm:flex-initial tap-active")}
                 onClick={() => handleOpenAdjust()}
               >
                 <Plus className="size-4" aria-hidden /> Adjust Stock
@@ -120,36 +120,36 @@ function StockPage() {
 
       {/* Stock Summary Mini-KPI Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="surface p-4">
+        <div className="rounded-2xl border border-border/80 bg-elevated/40 p-3.5 sm:p-4">
           <p className="label-xs text-muted-foreground font-semibold">Stock Valuation</p>
-          <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
+          <p className="num mt-1 text-lg sm:text-2xl font-bold text-foreground truncate">
             {formatMoney(totalValue, currency)}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{filtered.length} models</p>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">{filtered.length} models listed</p>
         </div>
 
-        <div className="surface p-4">
+        <div className="rounded-2xl border border-border/80 bg-elevated/40 p-3.5 sm:p-4">
           <p className="label-xs text-muted-foreground font-semibold">Remaining Units</p>
-          <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
+          <p className="num mt-1 text-lg sm:text-2xl font-bold text-foreground">
             {formatUnits(totalUnits)}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">On-hand units</p>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">On-hand count</p>
         </div>
 
-        <div className="surface p-4">
+        <div className="rounded-2xl border border-border/80 bg-elevated/40 p-3.5 sm:p-4">
           <p className="label-xs text-muted-foreground font-semibold">Healthy Models</p>
-          <p className="num mt-1 text-xl font-bold text-success sm:text-2xl">
+          <p className="num mt-1 text-lg sm:text-2xl font-bold text-emerald-400">
             {inventory.filter((i) => i.status === "IN STOCK").length}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">In stock</p>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">Normal level</p>
         </div>
 
-        <div className={cn("surface p-4", lowCount > 0 && "border-amber-500/30 bg-amber-500/5")}>
+        <div className={cn("rounded-2xl border p-3.5 sm:p-4", lowCount > 0 ? "border-amber-500/30 bg-amber-500/10" : "border-border/80 bg-elevated/40")}>
           <p className="label-xs text-muted-foreground font-semibold">Low / Out of Stock</p>
-          <p className={cn("num mt-1 text-xl font-bold sm:text-2xl", lowCount > 0 ? "text-amber-400" : "text-muted-foreground")}>
+          <p className={cn("num mt-1 text-lg sm:text-2xl font-bold", lowCount > 0 ? "text-amber-400" : "text-muted-foreground")}>
             {lowCount}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Limit: {threshold}</p>
+          <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">Alert threshold: {threshold}</p>
         </div>
       </div>
 
@@ -161,29 +161,29 @@ function StockPage() {
               label="Search stock"
               value={search}
               onChange={setSearch}
-              placeholder="Search by model name"
+              placeholder="Search by model name..."
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
             <button
               type="button"
               onClick={() => setFilterMode("ALL")}
               className={cn(
-                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 filterMode === "ALL"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
               )}
             >
-              All Models ({inventory.length})
+              All ({inventory.length})
             </button>
             <button
               type="button"
               onClick={() => setFilterMode("LOW")}
               className={cn(
-                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 filterMode === "LOW"
                   ? "bg-amber-500 text-amber-950 font-bold shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
@@ -195,7 +195,7 @@ function StockPage() {
               type="button"
               onClick={() => setFilterMode("OUT")}
               className={cn(
-                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap tap-active",
                 filterMode === "OUT"
                   ? "bg-destructive text-destructive-foreground shadow-xs"
                   : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",

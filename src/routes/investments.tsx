@@ -385,7 +385,7 @@ function InvestmentsPage() {
                     disabled={isReadOnly}
                     onClick={() => setField("type", t)}
                     className={cn(
-                      "flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all text-left",
+                      "flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all text-left tap-active",
                       active
                         ? "border-primary/50 bg-primary/15 text-primary shadow-sm"
                         : "border-border/70 bg-card/60 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground",
@@ -455,7 +455,7 @@ function InvestmentsPage() {
                         key={q}
                         type="button"
                         onClick={() => handleAddAmount(q)}
-                        className="rounded-md border border-border/70 bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-foreground hover:bg-muted active:scale-95 transition-all"
+                        className="rounded-lg border border-border/70 bg-muted/50 px-2 py-0.5 text-[11px] font-semibold text-foreground hover:bg-muted tap-active transition-all"
                       >
                         +{q.toLocaleString()}
                       </button>
@@ -493,14 +493,14 @@ function InvestmentsPage() {
           <div className="flex flex-col gap-2 pt-1 sm:flex-row">
             <button
               type="submit"
-              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
+              className={cn(btnPrimary, "w-full sm:w-auto tap-active", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
               <HandCoins className="size-4" aria-hidden />
               {editingId ? "Update Entry" : "Save Entry"}
             </button>
             {editingId && (
-              <button type="button" className={btnOutline} onClick={reset}>
+              <button type="button" className={cn(btnOutline, "tap-active")} onClick={reset}>
                 Cancel
               </button>
             )}
@@ -546,7 +546,7 @@ function InvestmentsPage() {
               type="button"
               onClick={() => setSelectedType("ALL")}
               className={cn(
-                "rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
+                "rounded-lg px-2.5 py-1 text-xs font-medium transition-all tap-active",
                 selectedType === "ALL"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -562,7 +562,7 @@ function InvestmentsPage() {
                   type="button"
                   onClick={() => setSelectedType(t)}
                   className={cn(
-                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-all tap-active",
                     selectedType === t
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
