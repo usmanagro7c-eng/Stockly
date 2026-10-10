@@ -203,36 +203,36 @@ function BuyPage() {
     <div className="space-y-6">
       <PageHeader
         title="Buy Stock"
-        subtitle="Record incoming inventory shipments, unit costs, and supplier info."
+        subtitle="Record incoming stock shipments."
       />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Purchase Record" : "Record Incoming Stock"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Purchase" : "New Purchase"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
-              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying purchases is disabled.</span>
+              <span>Viewer Mode: Read-only access to this sheet.</span>
             </div>
           )}
 
           {/* Model name */}
-          <Field label="Stock Model Name" htmlFor="buy-model" required error={errors.model}>
+          <Field label="Model" htmlFor="buy-model" required error={errors.model}>
             <ComboboxSelect
               id="buy-model"
               value={form.model}
               onChange={(val) => set("model", val)}
               options={modelOptions}
-              placeholder="Search existing or type new model name..."
-              searchPlaceholder="Type model name..."
+              placeholder="Select or enter model..."
+              searchPlaceholder="Search or enter model..."
               allowCustom={true}
-              customActionLabel={(txt) => `+ Add "${txt}" as new stock model`}
+              customActionLabel={(txt) => `+ Add "${txt}"`}
               disabled={isReadOnly}
             />
           </Field>
 
           {/* Date */}
-          <Field label="Purchase Date" htmlFor="buy-date" required error={errors.date}>
+          <Field label="Date" htmlFor="buy-date" required error={errors.date}>
             <input
               id="buy-date"
               type="date"
@@ -284,7 +284,7 @@ function BuyPage() {
               className={inputClass}
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
-              placeholder="Number of units"
+              placeholder="0"
               disabled={isReadOnly}
             />
             {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
@@ -292,7 +292,7 @@ function BuyPage() {
 
           {/* Buying price */}
           <Field
-            label={`Buying Price / Unit (${currency})`}
+            label={`Cost / Unit (${currency})`}
             htmlFor="buy-price"
             required
             error={errors.buying_price}
@@ -312,45 +312,45 @@ function BuyPage() {
           </Field>
 
           {/* Supplier */}
-          <Field label="Supplier / Vendor" htmlFor="buy-supplier">
+          <Field label="Supplier" htmlFor="buy-supplier">
             <ComboboxSelect
               id="buy-supplier"
               value={form.supplier}
               onChange={(val) => set("supplier", val)}
               options={supplierOptions}
-              placeholder="e.g. Vendor name or wholesale market"
-              searchPlaceholder="Type or search vendor..."
+              placeholder="Supplier or market"
+              searchPlaceholder="Search supplier..."
               allowCustom={true}
-              customActionLabel={(txt) => `Use "${txt}" as vendor`}
+              customActionLabel={(txt) => `Use "${txt}"`}
               disabled={isReadOnly}
             />
           </Field>
 
           {/* Remarks */}
-          <Field label="Remarks / Invoice #" htmlFor="buy-remarks">
+          <Field label="Notes" htmlFor="buy-remarks">
             <input
               id="buy-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="Bill number, batch note, etc."
+              placeholder="Optional invoice # or remarks"
               disabled={isReadOnly}
             />
           </Field>
 
           {/* Live Investment Summary */}
-          <div className="rounded-2xl border border-border/80 bg-elevated/70 p-4 sm:col-span-2 shadow-xs">
+          <div className="rounded-2xl border border-border/70 bg-elevated/50 p-4 sm:col-span-2">
             <div className="flex items-center justify-between">
               <div>
-                <p className="label-xs text-muted-foreground font-semibold">Total Purchase Cost</p>
-                <p className="num mt-1 text-2xl font-bold text-foreground">
+                <p className="text-[11px] font-medium text-muted-foreground">Total Cost</p>
+                <p className="num mt-0.5 text-2xl font-bold text-foreground">
                   {formatMoney(totalCost, currency)}
                 </p>
               </div>
               {toNumber(form.quantity) > 0 && toNumber(form.buying_price) > 0 && (
                 <div className="text-right text-xs text-muted-foreground">
                   <p>{formatUnits(toNumber(form.quantity))} units</p>
-                  <p>@ {formatMoney(toNumber(form.buying_price), currency)} each</p>
+                  <p>@ {formatMoney(toNumber(form.buying_price), currency)}</p>
                 </div>
               )}
             </div>
@@ -365,7 +365,7 @@ function BuyPage() {
               title={isReadOnly ? "Viewer mode: Read-only access" : undefined}
             >
               <ShoppingCart className="size-4" aria-hidden />
-              {isReadOnly ? "Read-Only (Viewer Mode)" : editingId ? "Update Purchase Record" : "Save Stock Purchase"}
+              {isReadOnly ? "Read-Only (Viewer)" : editingId ? "Update Purchase" : "Save Purchase"}
             </button>
             {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>

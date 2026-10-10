@@ -284,7 +284,7 @@ function InvestmentsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Investments & Capital"
-        subtitle="Manage investor capital injection, partner contributions, borrowings, and withdrawals."
+        subtitle="Manage partner capital, borrowings, and withdrawals."
         badge={
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
             <Landmark className="size-3" />
@@ -296,9 +296,9 @@ function InvestmentsPage() {
       {/* 4 Modern KPI Cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Net Capital */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4.5 shadow-sm transition-all hover:border-emerald-500/40 hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Net Working Capital</span>
+            <span className="text-xs font-medium text-muted-foreground">Net Capital</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
               <Landmark className="size-4" />
             </div>
@@ -306,15 +306,12 @@ function InvestmentsPage() {
           <div className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             {formatMoney(metrics.netCapital, currency)}
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <span>Injected + Loans − Drawings</span>
-          </div>
         </div>
 
         {/* Gross Capital Injected */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4.5 shadow-sm transition-all hover:border-cyan-500/40 hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Capital & Partners</span>
+            <span className="text-xs font-medium text-muted-foreground">Partner Capital</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
               <TrendingUp className="size-4" />
             </div>
@@ -322,13 +319,10 @@ function InvestmentsPage() {
           <div className="mt-2 text-xl font-bold tracking-tight text-cyan-400 sm:text-2xl">
             +{formatMoney(metrics.grossCapital, currency)}
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <span>{metrics.investorCount} partners / investors</span>
-          </div>
         </div>
 
         {/* Loans / Borrowings */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4.5 shadow-sm transition-all hover:border-indigo-500/40 hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Loans / Borrowings</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400">
@@ -338,24 +332,18 @@ function InvestmentsPage() {
           <div className="mt-2 text-xl font-bold tracking-tight text-indigo-400 sm:text-2xl">
             {formatMoney(metrics.totalLoans, currency)}
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <span>External liabilities</span>
-          </div>
         </div>
 
         {/* Drawings / Withdrawals */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4.5 shadow-sm transition-all hover:border-rose-500/40 hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Partner Withdrawals</span>
+            <span className="text-xs font-medium text-muted-foreground">Withdrawals</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
               <ArrowUpRight className="size-4" />
             </div>
           </div>
           <div className="mt-2 text-xl font-bold tracking-tight text-rose-400 sm:text-2xl">
             -{formatMoney(metrics.totalDrawings, currency)}
-          </div>
-          <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <span>Drawn capital / profit payout</span>
           </div>
         </div>
       </div>
@@ -369,21 +357,21 @@ function InvestmentsPage() {
             </div>
           }
         >
-          {editingId ? "Edit Investment Entry" : "Record New Investment / Drawing"}
+          {editingId ? "Edit Investment" : "New Investment"}
         </SectionTitle>
 
         <form onSubmit={submit} className="mt-4 space-y-4">
           {isReadOnly && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400">
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-medium text-amber-400">
               <Eye className="size-4 shrink-0" aria-hidden />
-              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying records is disabled.</span>
+              <span>Viewer Mode: Read-only access to this sheet.</span>
             </div>
           )}
 
           {/* Investment Type Selector Chips */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Transaction Type <span className="text-destructive">*</span>
+              Type <span className="text-destructive">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {INVESTMENT_TYPES.map((t) => {
@@ -422,21 +410,20 @@ function InvestmentsPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Investor / Partner Name */}
             <Field
-              label="Investor / Partner Name"
+              label="Partner / Investor"
               htmlFor="inv-name"
               required
               error={errors.investor}
-              hint="Name of the person, partner, or bank"
             >
               <ComboboxSelect
                 id="inv-name"
                 value={form.investor}
                 onChange={(val) => setField("investor", val)}
                 options={investorOptions}
-                placeholder="Select or enter partner / investor..."
-                searchPlaceholder="Search or type name..."
+                placeholder="Partner or investor name..."
+                searchPlaceholder="Search or enter name..."
                 allowCustom={true}
-                customActionLabel={(txt) => `+ Use "${txt}" as investor`}
+                customActionLabel={(txt) => `+ Use "${txt}"`}
                 disabled={isReadOnly}
               />
             </Field>
@@ -463,7 +450,6 @@ function InvestmentsPage() {
                 />
                 {!isReadOnly && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[10px] text-muted-foreground">Quick add:</span>
                     {quickAmounts.map((q) => (
                       <button
                         key={q}
@@ -480,7 +466,7 @@ function InvestmentsPage() {
             </Field>
 
             {/* Date */}
-            <Field label="Transaction Date" htmlFor="inv-date" required error={errors.date}>
+            <Field label="Date" htmlFor="inv-date" required error={errors.date}>
               <input
                 id="inv-date"
                 type="date"
@@ -492,26 +478,26 @@ function InvestmentsPage() {
             </Field>
 
             {/* Remarks */}
-            <Field label="Remarks / Purpose" htmlFor="inv-remarks">
+            <Field label="Notes" htmlFor="inv-remarks">
               <input
                 id="inv-remarks"
                 className={inputClass}
                 value={form.remarks}
                 onChange={(e) => setField("remarks", e.target.value)}
-                placeholder="e.g. Initial capital, Shop expansion, Monthly drawing"
+                placeholder="Optional notes or remarks"
                 disabled={isReadOnly}
               />
             </Field>
           </div>
 
-          <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row">
             <button
               type="submit"
               className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
               <HandCoins className="size-4" aria-hidden />
-              {editingId ? "Update Investment Record" : "Save Investment Entry"}
+              {editingId ? "Update Entry" : "Save Entry"}
             </button>
             {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>

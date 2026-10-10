@@ -428,7 +428,7 @@ function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Settings" subtitle="Configure your shop, security, and data." />
+      <PageHeader title="Settings" subtitle="Shop profile, theme & sync." />
 
       {/* User Profile */}
       <Panel>
@@ -497,9 +497,6 @@ function SettingsPage() {
         >
           Appearance & Theme
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose between Clean Light Mode for bright shop daylight, Default Business Dark, or Pure OLED Black.
-        </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {/* Light Mode */}
@@ -609,11 +606,6 @@ function SettingsPage() {
         >
           PIN Security
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {hasPin
-            ? "A 4–6 digit PIN protects the app. Enter it to change or disable."
-            : "Set a PIN to lock the app on launch."}
-        </p>
 
         <form onSubmit={handlePinSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {!hasPin && (
@@ -780,9 +772,6 @@ function SettingsPage() {
         <SectionTitle left={<HardDriveDownload className="size-4" aria-hidden />}>
           Data Management
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Export your complete data as a JSON file, or import a backup to merge or replace.
-        </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button type="button" className={btnOutline} onClick={handleExport}>
@@ -833,7 +822,7 @@ function SettingsPage() {
               </span>
             </label>
             <span className="text-xs text-muted-foreground ml-auto">
-              Merge adds new records; Replace overwrites everything.
+              Merge adds records · Replace overwrites
             </span>
           </div>
         </div>
@@ -844,9 +833,6 @@ function SettingsPage() {
         <SectionTitle left={<FilePlus className="size-4" aria-hidden />}>
           Backup & Restore
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Create a full backup or restore from a backup file.
-        </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button type="button" className={btnPrimary} onClick={handleExport}>
@@ -864,15 +850,12 @@ function SettingsPage() {
           left={<FileSpreadsheetIcon className="size-4 text-emerald-400" aria-hidden />}
           right={
             <span className="text-xs font-semibold text-emerald-400">
-              1-Click Instant Downloads
+              Instant Download
             </span>
           }
         >
           Export Reports (Excel & CSV)
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Download formatted Excel spreadsheets or accounting workbooks to share via WhatsApp, Email, or with your accountant.
-        </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {/* Master Workbook */}
@@ -986,13 +969,10 @@ function SettingsPage() {
       {/* Google Sheets Sync */}
       <Panel>
         <SectionTitle left={<FileSpreadsheet className="size-4" aria-hidden />}>
-          Google Sheets Sync &amp; Sharing
+          Google Sheets Sync
         </SectionTitle>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Sign in with the Gmail account to which the sheet was shared, then link your spreadsheet.
-        </p>
 
-        <div className="mt-5 space-y-5">
+        <div className="mt-4 space-y-4">
           {/* Step 1: Google Account */}
           <div className="rounded-xl border border-border bg-elevated/60 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1006,15 +986,15 @@ function SettingsPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {connectedEmail ? (
                     <span>
-                      Active account: <strong className="text-foreground">{connectedEmail}</strong>
+                      Active: <strong className="text-foreground">{connectedEmail}</strong>
                       {!isTokenValid() && (
                         <span className="ml-2 inline-flex items-center text-amber-500 font-medium">
-                          · Session Expired (Click Reconnect)
+                          · Session Expired (Reconnect)
                         </span>
                       )}
                     </span>
                   ) : (
-                    "Sign in with the Gmail account that has access to the sheet."
+                    "Sign in with your Google account."
                   )}
                 </p>
               </div>
@@ -1027,10 +1007,10 @@ function SettingsPage() {
                       onClick={handleSignInGoogle}
                       disabled={signingIn}
                       className={btnPrimary}
-                      title="Your 1-hour Google session has expired. Click to renew."
+                      title="Session expired. Click to renew."
                     >
                       <RotateCcw className="size-4" aria-hidden />
-                      {signingIn ? "Reconnecting..." : "Reconnect Session"}
+                      {signingIn ? "Reconnecting..." : "Reconnect"}
                     </button>
                   )}
                   <button
@@ -1039,7 +1019,7 @@ function SettingsPage() {
                     disabled={signingIn}
                     className={btnOutline}
                   >
-                    Switch Account
+                    Switch
                   </button>
                   <button
                     type="button"
@@ -1072,7 +1052,7 @@ function SettingsPage() {
               <p className="text-sm font-semibold text-foreground">Link Google Sheet</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label htmlFor="sheet-url" className="label-xs block">
                 Google Sheet URL or ID
               </label>
@@ -1082,7 +1062,7 @@ function SettingsPage() {
                   className={inputClass}
                   value={sheetUrl}
                   onChange={handleSheetUrlChange}
-                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                  placeholder="Paste Google Sheet URL or ID..."
                 />
                 {isConnected ? (
                   <button
@@ -1105,9 +1085,6 @@ function SettingsPage() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Paste the full browser link or sheet ID of the spreadsheet shared with your Gmail.
-              </p>
             </div>
 
             {/* Connected Details */}
@@ -1122,7 +1099,7 @@ function SettingsPage() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <p className="label-xs">Your Permission</p>
+                      <p className="label-xs">Permission</p>
                       <button
                         type="button"
                         onClick={handleRefreshPermissions}
@@ -1137,11 +1114,11 @@ function SettingsPage() {
                     <div className="mt-0.5">
                       {sheetRole === "edit" ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                          <Edit3 className="size-3" /> Editor · Can view and edit
+                          <Edit3 className="size-3" /> Editor · Full Access
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                          <Eye className="size-3" /> Viewer · Read-only access
+                          <Eye className="size-3" /> Viewer · Read-Only
                         </span>
                       )}
                     </div>
@@ -1170,7 +1147,7 @@ function SettingsPage() {
                     disabled={syncing}
                   >
                     <RotateCcw className="size-4" aria-hidden />
-                    {syncing ? "Syncing..." : "Sync from Sheets (Pull)"}
+                    {syncing ? "Syncing..." : "Pull from Sheets"}
                   </button>
                   <button
                     type="button"
@@ -1180,7 +1157,7 @@ function SettingsPage() {
                     title={isReadOnly ? "Viewer mode: You cannot edit this sheet" : undefined}
                   >
                     <RotateCcw className="size-4" aria-hidden />
-                    {isReadOnly ? "Write Disabled (Viewer)" : syncing ? "Pushing..." : "Sync to Sheets (Push)"}
+                    {isReadOnly ? "Write Disabled (Viewer)" : syncing ? "Pushing..." : "Push to Sheets"}
                   </button>
                 </div>
               </div>
@@ -1188,12 +1165,6 @@ function SettingsPage() {
           </div>
         </div>
       </Panel>
-
-
-      <p className="text-center text-xs text-muted-foreground">
-        <Mail className="size-3 inline" aria-hidden /> Data never leaves this device. Stockly is
-        offline-first.
-      </p>
     </div>
   );
 }

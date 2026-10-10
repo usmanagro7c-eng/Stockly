@@ -250,53 +250,49 @@ function Dashboard() {
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <Link
             to="/sell"
-            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left transition-all hover:bg-emerald-500/20 active:scale-98 shadow-xs"
+            className="group flex min-h-12 items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left transition-all hover:bg-emerald-500/20 active:scale-98"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 group-hover:scale-105 transition-transform">
-              <Tag className="size-5" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 group-hover:scale-105 transition-transform">
+              <Tag className="size-4.5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">Record Sale</p>
-              <p className="text-[11px] text-muted-foreground truncate">Sell stock & calc profit</p>
+              <p className="text-sm font-semibold text-foreground">Record Sale</p>
             </div>
           </Link>
 
           <Link
             to="/buy"
-            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-left transition-all hover:bg-sky-500/20 active:scale-98 shadow-xs"
+            className="group flex min-h-12 items-center gap-3 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-left transition-all hover:bg-sky-500/20 active:scale-98"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 group-hover:scale-105 transition-transform">
-              <ShoppingCart className="size-5" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 group-hover:scale-105 transition-transform">
+              <ShoppingCart className="size-4.5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">Buy Stock</p>
-              <p className="text-[11px] text-muted-foreground truncate">Add incoming inventory</p>
+              <p className="text-sm font-semibold text-foreground">Buy Stock</p>
             </div>
           </Link>
 
           <Link
             to="/expenses"
-            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-left transition-all hover:bg-amber-500/20 active:scale-98 shadow-xs"
+            className="group flex min-h-12 items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-left transition-all hover:bg-amber-500/20 active:scale-98"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-105 transition-transform">
-              <Receipt className="size-5" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-105 transition-transform">
+              <Receipt className="size-4.5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">Add Expense</p>
-              <p className="text-[11px] text-muted-foreground truncate">Shop bills & costs</p>
+              <p className="text-sm font-semibold text-foreground">Add Expense</p>
             </div>
           </Link>
 
           <Link
             to="/stock"
-            className="group flex min-h-14 items-center gap-3 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-3 text-left transition-all hover:bg-purple-500/20 active:scale-98 shadow-xs"
+            className="group flex min-h-12 items-center gap-3 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-3 text-left transition-all hover:bg-purple-500/20 active:scale-98"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 group-hover:scale-105 transition-transform">
-              <Boxes className="size-5" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 group-hover:scale-105 transition-transform">
+              <Boxes className="size-4.5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">Inventory</p>
-              <p className="text-[11px] text-muted-foreground truncate">View stock levels</p>
+              <p className="text-sm font-semibold text-foreground">Inventory</p>
             </div>
           </Link>
         </div>

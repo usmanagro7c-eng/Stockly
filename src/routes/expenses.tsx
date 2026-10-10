@@ -169,7 +169,7 @@ function ExpensesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Shop Expenses"
-        subtitle="Track overhead costs, utility bills and operational spending that deduct from profits."
+        subtitle="Track shop expenses & bills."
         action={
           <button
             type="button"
@@ -185,26 +185,26 @@ function ExpensesPage() {
       />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Expense Record" : "Record New Expense"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Expense" : "New Expense"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
-              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying expenses is disabled.</span>
+              <span>Viewer Mode: Read-only access to this sheet.</span>
             </div>
           )}
 
           {/* Category selection */}
-          <Field label="Expense Category" htmlFor="exp-type" required error={errors.expense_type}>
+          <Field label="Category" htmlFor="exp-type" required error={errors.expense_type}>
             <ComboboxSelect
               id="exp-type"
               value={form.expense_type}
               onChange={(val) => set("expense_type", val)}
               options={categoryOptions}
-              placeholder="Select expense category..."
-              searchPlaceholder="Search category or type custom..."
+              placeholder="Select category..."
+              searchPlaceholder="Search category..."
               allowCustom={true}
-              customActionLabel={(txt) => `+ Use "${txt}" as custom category`}
+              customActionLabel={(txt) => `+ Add "${txt}"`}
               disabled={isReadOnly}
             />
           </Field>
@@ -226,7 +226,7 @@ function ExpensesPage() {
           </Field>
 
           {/* Date */}
-          <Field label="Expense Date" htmlFor="exp-date" required error={errors.date}>
+          <Field label="Date" htmlFor="exp-date" required error={errors.date}>
             <input
               id="exp-date"
               type="date"
@@ -238,13 +238,13 @@ function ExpensesPage() {
           </Field>
 
           {/* Remarks */}
-          <Field label="Description / Remarks" htmlFor="exp-remarks" required error={errors.remarks}>
+          <Field label="Description" htmlFor="exp-remarks" required error={errors.remarks}>
             <input
               id="exp-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="What was this expense for?"
+              placeholder="e.g. Rent, Electricity, Tea"
               disabled={isReadOnly}
             />
           </Field>
@@ -256,7 +256,7 @@ function ExpensesPage() {
               disabled={isReadOnly}
             >
               <Receipt className="size-4" aria-hidden />
-              {editingId ? "Update Expense Record" : "Save Expense"}
+              {editingId ? "Update Expense" : "Save Expense"}
             </button>
             {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>

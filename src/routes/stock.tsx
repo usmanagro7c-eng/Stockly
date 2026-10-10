@@ -92,7 +92,7 @@ function StockPage() {
     <div className="space-y-6">
       <PageHeader
         title="Stock Inventory"
-        subtitle={`Track on-hand units, weighted costs, and total stock valuation.`}
+        subtitle="On-hand inventory & valuation."
         action={
           <div className="flex items-center gap-2">
             <button
@@ -121,11 +121,11 @@ function StockPage() {
       {/* Stock Summary Mini-KPI Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="surface p-4">
-          <p className="label-xs text-muted-foreground font-semibold">Total Stock Valuation</p>
+          <p className="label-xs text-muted-foreground font-semibold">Stock Valuation</p>
           <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
             {formatMoney(totalValue, currency)}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Across {filtered.length} models</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{filtered.length} models</p>
         </div>
 
         <div className="surface p-4">
@@ -133,7 +133,7 @@ function StockPage() {
           <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
             {formatUnits(totalUnits)}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Total on-hand stock</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">On-hand units</p>
         </div>
 
         <div className="surface p-4">
@@ -141,7 +141,7 @@ function StockPage() {
           <p className="num mt-1 text-xl font-bold text-success sm:text-2xl">
             {inventory.filter((i) => i.status === "IN STOCK").length}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Sufficient inventory</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">In stock</p>
         </div>
 
         <div className={cn("surface p-4", lowCount > 0 && "border-amber-500/30 bg-amber-500/5")}>
@@ -149,7 +149,7 @@ function StockPage() {
           <p className={cn("num mt-1 text-xl font-bold sm:text-2xl", lowCount > 0 ? "text-amber-400" : "text-muted-foreground")}>
             {lowCount}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Below limit ({threshold})</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Limit: {threshold}</p>
         </div>
       </div>
 

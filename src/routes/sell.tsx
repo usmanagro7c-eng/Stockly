@@ -102,7 +102,7 @@ function SellPage() {
         value: i.model,
         label: i.model,
         icon: Package,
-        sublabel: `Weighted Cost: ${formatMoney(i.avg_cost, currency)} / unit`,
+        sublabel: `Cost: ${formatMoney(i.avg_cost, currency)}`,
         badge: (
           <span
             className={cn(
@@ -112,7 +112,7 @@ function SellPage() {
                 : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
             )}
           >
-            {formatUnits(i.remaining)} in stock
+            {formatUnits(i.remaining)} left
           </span>
         ),
       };
@@ -243,36 +243,36 @@ function SellPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Sell Stock (POS)"
-        subtitle="Record customer orders with real-time profit and inventory deduction."
+        title="Sell Stock"
+        subtitle="Record sales & track profit."
       />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Sale Record" : "New Sale Transaction"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Sale" : "New Sale"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
-              <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying sales is disabled.</span>
+              <span>Viewer Mode: Read-only access to this sheet.</span>
             </div>
           )}
 
           {/* Model selection */}
-          <Field label="Stock Model" htmlFor="sell-model" required error={errors.model}>
+          <Field label="Model" htmlFor="sell-model" required error={errors.model}>
             <ComboboxSelect
               id="sell-model"
               value={form.model}
               onChange={(val) => set("model", val)}
               options={modelOptions}
-              placeholder="Search & select model in stock..."
-              searchPlaceholder="Type model name (e.g. iPhone, Samsung)..."
+              placeholder="Select model in stock..."
+              searchPlaceholder="Search model..."
               disabled={isReadOnly}
-              emptyText="No items in stock matching this name"
+              emptyText="No items in stock"
             />
           </Field>
 
           {/* Date */}
-          <Field label="Sale Date" htmlFor="sell-date" required error={errors.date}>
+          <Field label="Date" htmlFor="sell-date" required error={errors.date}>
             <input
               id="sell-date"
               type="date"
@@ -283,28 +283,19 @@ function SellPage() {
             />
           </Field>
 
-          {/* Stock Info Pill Row */}
-          {form.model && (
-            <div className="sm:col-span-2 flex flex-wrap items-center gap-2.5 p-3 rounded-xl border border-border/70 bg-elevated/50 text-xs">
-              <span className="text-muted-foreground font-medium">Selected Model:</span>
-              <span className="font-semibold text-foreground">{form.model}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">In Stock:</span>
-              <span className={cn("font-bold num", available <= threshold ? "text-amber-400" : "text-emerald-400")}>
-                {formatUnits(available)} units
-              </span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">Weighted Cost:</span>
-              <span className="font-semibold num text-foreground">{formatMoney(avgCost, currency)} / unit</span>
-            </div>
-          )}
-
           {/* Quantity with quick chips */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="sell-qty" className="label-xs block text-muted-foreground font-semibold">
-                Quantity <span className="text-destructive font-bold">*</span>
-              </label>
+              <div className="flex items-center gap-2">
+                <label htmlFor="sell-qty" className="label-xs block text-muted-foreground font-semibold">
+                  Quantity <span className="text-destructive font-bold">*</span>
+                </label>
+                {form.model && (
+                  <span className={cn("text-[11px] font-medium num", available <= threshold ? "text-amber-400" : "text-muted-foreground")}>
+                    ({formatUnits(available)} available)
+                  </span>
+                )}
+              </div>
               {available > 0 && !isReadOnly && (
                 <div className="flex items-center gap-1">
                   <button
@@ -326,7 +317,7 @@ function SellPage() {
                     onClick={setMaxQty}
                     className="rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 active:scale-95"
                   >
-                    Max ({available})
+                    Max
                   </button>
                 </div>
               )}
@@ -341,7 +332,7 @@ function SellPage() {
               className={inputClass}
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
-              placeholder="Units to sell"
+              placeholder="0"
               disabled={isReadOnly}
             />
             {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
@@ -349,7 +340,7 @@ function SellPage() {
 
           {/* Selling Price */}
           <Field
-            label={`Selling Price / Unit (${currency})`}
+            label={`Price / Unit (${currency})`}
             htmlFor="sell-price"
             required
             error={errors.selling_price}
@@ -369,60 +360,51 @@ function SellPage() {
           </Field>
 
           {/* Customer */}
-          <Field label="Customer Name" htmlFor="sell-customer">
+          <Field label="Customer" htmlFor="sell-customer">
             <ComboboxSelect
               id="sell-customer"
               value={form.customer}
               onChange={(val) => set("customer", val)}
               options={customerOptions}
-              placeholder="e.g. Walk-in or Client name"
-              searchPlaceholder="Type or search customer name..."
+              placeholder="Walk-in / Customer name"
+              searchPlaceholder="Search or enter customer..."
               allowCustom={true}
-              customActionLabel={(txt) => `Use "${txt}" as customer`}
+              customActionLabel={(txt) => `Use "${txt}"`}
               disabled={isReadOnly}
             />
           </Field>
 
           {/* Remarks */}
-          <Field label="Remarks / Notes" htmlFor="sell-remarks">
+          <Field label="Notes" htmlFor="sell-remarks">
             <input
               id="sell-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="Payment method, invoice #, etc."
+              placeholder="Optional notes or invoice #"
               disabled={isReadOnly}
             />
           </Field>
 
           {/* Digital POS Receipt Live Summary Card */}
-          <div className="rounded-2xl border border-border/80 bg-elevated/70 p-4 sm:col-span-2 shadow-xs">
-            <div className="flex items-center justify-between border-b border-border/60 pb-2.5 mb-3">
-              <span className="label-xs text-muted-foreground font-semibold">Live Transaction Summary</span>
-              {qty > 0 && form.model && (
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {formatUnits(qty)} × {formatMoney(toNumber(form.selling_price), currency)}
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-border/70 bg-elevated/50 p-4 sm:col-span-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-muted-foreground">Total Sale</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Total Sale</p>
                 <p className="num mt-0.5 text-xl font-bold text-foreground">
                   {formatMoney(totalSale, currency)}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs text-muted-foreground">Est. Cost (COGS)</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Cost (COGS)</p>
                 <p className="num mt-0.5 text-xl font-semibold text-muted-foreground">
                   {formatMoney(qty * avgCost, currency)}
                 </p>
               </div>
 
               <div className="col-span-2 sm:col-span-1">
-                <p className="text-xs text-muted-foreground">Net Profit</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Est. Profit</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <p
                     className={cn(
@@ -431,9 +413,9 @@ function SellPage() {
                     )}
                   >
                     {estimatedProfit >= 0 ? (
-                      <TrendingUp className="size-4.5 text-success" />
+                      <TrendingUp className="size-4 text-success" />
                     ) : (
-                      <TrendingDown className="size-4.5 text-destructive" />
+                      <TrendingDown className="size-4 text-destructive" />
                     )}
                     {formatMoney(estimatedProfit, currency)}
                   </p>
@@ -460,7 +442,7 @@ function SellPage() {
               disabled={isReadOnly}
             >
               <Tag className="size-4" aria-hidden />
-              {editingId ? "Update Sale Record" : "Complete & Save Sale"}
+              {editingId ? "Update Sale" : "Save Sale"}
             </button>
             {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>

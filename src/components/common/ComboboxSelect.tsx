@@ -370,16 +370,6 @@ export function ComboboxSelect({
               </div>
             ) : null}
           </div>
-
-          {/* Footer count */}
-          {options.length > 5 ? (
-            <div className="border-t border-border/60 mt-1 px-3 py-1 flex items-center justify-between text-[10px] text-muted-foreground font-medium">
-              <span>{filteredOptions.length} of {options.length} options</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-muted/60 text-[9px] uppercase text-muted-foreground">
-                Esc to close
-              </kbd>
-            </div>
-          ) : null}
         </div>
       )}
     </div>
