@@ -67,9 +67,9 @@
   --radius: 0.875rem;
   --background: oklch(0.15 0.018 255);
   --foreground: oklch(0.98 0.005 250);
-  --card: oklch(0.195 0.02 256);
+  --card: oklch(0.195 0.02 256 / 0.9);
   --card-foreground: oklch(0.98 0.005 250);
-  --elevated: oklch(0.24 0.022 256);
+  --elevated: oklch(0.24 0.022 256 / 0.95);
   --popover: oklch(0.21 0.02 256);
   --popover-foreground: oklch(0.98 0.005 250);
   --primary: oklch(0.75 0.16 160);
@@ -106,6 +106,60 @@
   --sidebar-ring: oklch(0.75 0.16 160);
 }
 
+/* ☀ Clean White Light Mode — Day and Sun friendly */
+:root.light,
+html.light {
+  color-scheme: light;
+  --background: oklch(0.978 0.004 250);
+  --foreground: oklch(0.18 0.02 256);
+  --card: oklch(1 0 0 / 0.95);
+  --card-foreground: oklch(0.18 0.02 256);
+  --elevated: oklch(0.955 0.006 250 / 0.98);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 256);
+  --primary: oklch(0.55 0.17 160);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.93 0.008 250);
+  --secondary-foreground: oklch(0.2 0.02 256);
+  --muted: oklch(0.93 0.007 250);
+  --muted-foreground: oklch(0.45 0.02 256);
+  --accent: oklch(0.91 0.012 250);
+  --accent-foreground: oklch(0.16 0.02 256);
+  --destructive: oklch(0.55 0.22 24);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.17 160);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.68 0.16 78);
+  --warning-foreground: oklch(0.15 0.04 78);
+  --info: oklch(0.55 0.15 234);
+  --info-foreground: oklch(0.99 0 0);
+  --border: oklch(0.87 0.012 250);
+  --input: oklch(0.89 0.012 250);
+  --ring: oklch(0.55 0.17 160);
+  --sidebar: oklch(0.965 0.005 250);
+  --sidebar-foreground: oklch(0.2 0.02 256);
+  --sidebar-primary: oklch(0.55 0.17 160);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.92 0.01 250);
+  --sidebar-accent-foreground: oklch(0.16 0.02 256);
+  --sidebar-border: oklch(0.88 0.012 250);
+  --sidebar-ring: oklch(0.55 0.17 160);
+}
+
+/* ⬛ Pure OLED Black Mode — True #000000 for battery saving */
+:root.oled,
+html.oled {
+  color-scheme: dark;
+  --background: #000000;
+  --card: oklch(0.08 0.006 256 / 0.95);
+  --elevated: oklch(0.13 0.009 256 / 0.98);
+  --popover: oklch(0.10 0.006 256);
+  --border: oklch(0.20 0.01 256);
+  --input: oklch(0.20 0.01 256);
+  --sidebar: #050505;
+  --sidebar-border: oklch(0.18 0.01 256);
+}
+
 .dark {
   color-scheme: dark;
 }
@@ -121,6 +175,10 @@
     touch-action: manipulation;
   }
 
+  html.light {
+    color-scheme: light;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -133,6 +191,17 @@
       radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.73 0.13 234 / 0.04), transparent);
     background-attachment: fixed;
     min-height: 100vh;
+  }
+
+  html.light body {
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.55 0.17 160 / 0.04), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.55 0.15 234 / 0.03), transparent);
+  }
+
+  html.oled body {
+    background-image: none;
+    background-color: #000000;
   }
 
   input,
@@ -161,6 +230,13 @@
   ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.45 0.018 256 / 0.8);
   }
+
+  html.light ::-webkit-scrollbar-thumb {
+    background: oklch(0.65 0.015 256 / 0.4);
+  }
+  html.light ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.45 0.018 256 / 0.7);
+  }
 }
 
 @utility pad-safe-bottom {
@@ -177,19 +253,19 @@
 }
 
 @utility surface {
-  background-color: oklch(0.195 0.02 256 / 0.9);
+  background-color: var(--color-card);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.29 0.02 256 / 0.7);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-card);
 }
 
 @utility surface-elevated {
-  background-color: oklch(0.24 0.022 256 / 0.95);
+  background-color: var(--color-elevated);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.33 0.022 256 / 0.8);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-pop);
 }

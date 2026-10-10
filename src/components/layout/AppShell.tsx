@@ -8,6 +8,8 @@ import {
   MoreHorizontal,
   RefreshCw,
   Sparkles,
+  Sun,
+  Moon,
   User,
   X,
   ChevronRight,
@@ -18,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { analyticsNav, primaryNav, systemNav } from "./nav-items";
 import { useStockStore } from "@/store/stockStore";
 import { useAutoSync } from "@/hooks/use-auto-sync";
+import { useTheme } from "@/hooks/use-theme";
 import { toast } from "sonner";
 
 function Brand({ compact }: { compact?: boolean }) {
@@ -56,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sheetRole = useStockStore((s) => s.sheetRole);
   const syncToSheets = useStockStore((s) => s.syncToGoogleSheets);
   const syncFromSheets = useStockStore((s) => s.syncFromGoogleSheets);
+  const { theme, cycleTheme, isLight } = useTheme();
 
   useAutoSync();
 
@@ -269,6 +273,25 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </div>
 
+          {/* Quick Theme Switcher Pill in Sidebar */}
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="rounded-xl border border-border/80 bg-sidebar-accent/50 p-2.5 flex items-center justify-between text-xs font-medium text-foreground hover:bg-sidebar-accent transition-all group"
+          >
+            <div className="flex items-center gap-2">
+              {isLight ? (
+                <Sun className="size-4 text-amber-500" />
+              ) : (
+                <Moon className="size-4 text-primary" />
+              )}
+              <span className="capitalize">{theme} Theme</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground group-hover:text-primary transition-colors">
+              Tap to switch
+            </span>
+          </button>
+
           {/* User profile card */}
           <Link
             to="/settings"
@@ -295,8 +318,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-between px-4 py-3">
           <Brand />
 
-          {/* Right Mobile Quick Status & Profile */}
+          {/* Right Mobile Quick Status, Theme & Profile */}
           <div className="flex items-center gap-2">
+            {/* Quick Theme Switcher */}
+            <button
+              type="button"
+              onClick={cycleTheme}
+              title={`Current theme: ${theme}. Tap to switch.`}
+              aria-label="Toggle light / dark theme"
+              className="flex size-9 items-center justify-center rounded-xl border border-border/80 bg-elevated/90 text-foreground hover:text-primary active:scale-90 transition-all shadow-xs"
+            >
+              {isLight ? (
+                <Sun className="size-4 text-amber-500" aria-hidden />
+              ) : (
+                <Moon className="size-4 text-primary" aria-hidden />
+              )}
+            </button>
+
             {/* Quick sync button / pill */}
             {settings.linked_file_name && (
               <button

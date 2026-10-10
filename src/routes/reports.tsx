@@ -1,6 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Layers } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  Layers,
+  Download,
+  Printer,
+  FileSpreadsheet,
+} from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,
@@ -29,8 +42,15 @@ import {
   inRange,
   weightedAverageCosts,
 } from "@/services/calculations";
-import { useCurrency, useStockStore } from "@/store/stockStore";
-import { formatMoney, todayISO } from "@/utils/format";
+import { useCurrency, useInventory, useStockStore } from "@/store/stockStore";
+import {
+  exportStockInventoryExcel,
+  exportSalesReportExcel,
+  exportExpensesReportExcel,
+  exportCompleteBusinessWorkbook,
+  printSalesReportPDF,
+} from "@/services/export-reports";
+import { formatDate, formatMoney, todayISO } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports")({
@@ -53,6 +73,9 @@ function ReportsPage() {
   const sales = useStockStore((s) => s.sales);
   const expenses = useStockStore((s) => s.expenses);
   const adjustments = useStockStore((s) => s.adjustments);
+  const investments = useStockStore((s) => s.investments);
+  const inventory = useInventory();
+  const shopName = useStockStore((s) => s.settings.user_name);
   const threshold = useStockStore((s) => s.settings.low_stock_threshold);
   const currency = useCurrency();
 
@@ -191,12 +214,114 @@ function ReportsPage() {
     fontSize: 11,
   };
 
+  const rangeLabel =
+    range.start && range.end
+      ? `${formatDate(range.start)} — ${formatDate(range.end)}`
+      : preset === "TODAY"
+      ? "Today"
+      : preset === "WEEK"
+      ? "Last 7 Days"
+      : preset === "MONTH"
+      ? "This Month"
+      : "All Recorded Time";
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Financial Reports"
         subtitle="Live income statement, revenue analysis, and profit trends."
       />
+
+      {/* 📊 Export Reports Toolbar */}
+      <Panel className="bg-gradient-to-br from-card/95 to-elevated/70">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <SectionTitle left={<Download className="size-4 text-emerald-400" />}>
+              1-Click Export &amp; Download Reports
+            </SectionTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Period: <span className="font-semibold text-foreground">{rangeLabel}</span> • Download formatted Excel (.xlsx) sheets or print/save A4 PDF
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sales Excel */}
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => {
+                exportSalesReportExcel(data.sales, currency, rangeLabel);
+                toast.success("Sales Excel report downloaded!");
+              }}
+            >
+              <FileSpreadsheet className="size-4" /> Sales (Excel)
+            </button>
+
+            {/* Print / PDF */}
+            <button
+              type="button"
+              className={btnOutline}
+              onClick={() => {
+                printSalesReportPDF({
+                  shopName,
+                  userName: shopName,
+                  dateRange: rangeLabel,
+                  currency,
+                  metrics: {
+                    totalSales: metrics.total_sales_revenue,
+                    totalProfit: metrics.gross_profit,
+                    totalExpenses: metrics.total_expenses,
+                    netProfit: metrics.net_profit,
+                    itemsSold: data.sales.reduce((t, s) => t + s.quantity, 0),
+                  },
+                  sales: data.sales,
+                });
+              }}
+            >
+              <Printer className="size-4" /> Print / Save PDF
+            </button>
+
+            {/* Stock Inventory Excel */}
+            <button
+              type="button"
+              className={btnOutline}
+              onClick={() => {
+                exportStockInventoryExcel(inventory, currency, threshold);
+                toast.success("Stock Inventory Excel downloaded!");
+              }}
+            >
+              <Download className="size-4" /> Stock (Excel)
+            </button>
+
+            {/* Expenses Excel */}
+            <button
+              type="button"
+              className={btnOutline}
+              onClick={() => {
+                exportExpensesReportExcel(data.expenses, currency, rangeLabel);
+                toast.success("Expenses Excel sheet downloaded!");
+              }}
+            >
+              <Download className="size-4" /> Expenses (Excel)
+            </button>
+
+            {/* Master Business Workbook */}
+            <button
+              type="button"
+              className={cn(btnOutline, "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10")}
+              onClick={() => {
+                exportCompleteBusinessWorkbook(
+                  { inventory, sales: data.sales, purchases: data.purchases, expenses: data.expenses, investments },
+                  currency,
+                );
+                toast.success("Master Business Workbook (.xlsx) downloaded!");
+              }}
+            >
+              <FileSpreadsheet className="size-4" /> Master Workbook
+            </button>
+          </div>
+        </div>
+      </Panel>
 
       {/* Date Range & Quick Presets Panel */}
       <Panel className="space-y-4">

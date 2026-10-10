@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, Receipt, Trash2, Tag } from "lucide-react";
+import { Eye, Pencil, Receipt, Trash2, Tag, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -20,6 +20,7 @@ import {
 import { useListPaging } from "@/hooks/use-list-paging";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useCurrency, useIsReadOnly, useStockStore } from "@/store/stockStore";
+import { exportExpensesReportExcel } from "@/services/export-reports";
 import { EXPENSE_CATEGORIES } from "@/types";
 import { formatDate, formatMoney, todayISO, toNumber } from "@/utils/format";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,18 @@ function ExpensesPage() {
       <PageHeader
         title="Shop Expenses"
         subtitle="Track overhead costs, utility bills and operational spending that deduct from profits."
+        action={
+          <button
+            type="button"
+            className={btnOutline}
+            onClick={() => {
+              exportExpensesReportExcel(expenses, currency);
+              toast.success("Expenses Excel sheet downloaded!");
+            }}
+          >
+            <Download className="size-4" aria-hidden /> Export Excel
+          </button>
+        }
       />
 
       <Panel>

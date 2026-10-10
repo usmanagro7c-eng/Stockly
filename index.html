@@ -9,6 +9,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Stockly — Inventory &amp; Profit Manager</title>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('stockly-theme') || 'dark';
+          var doc = document.documentElement;
+          if (t === 'light') {
+            doc.classList.add('light');
+          } else if (t === 'oled') {
+            doc.classList.add('dark', 'oled');
+          } else {
+            doc.classList.add('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192" />

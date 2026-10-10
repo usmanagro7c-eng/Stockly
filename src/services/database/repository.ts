@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pin_code_hash: "",
   linked_file_name: "",
   last_sync_time: "",
+  theme_mode: "dark",
 };
 
 const SETTINGS_KEY = "app";

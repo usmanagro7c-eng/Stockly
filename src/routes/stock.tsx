@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Boxes, Plus, SlidersHorizontal, Trash2, ArrowUpDown, ChevronRight, AlertTriangle, Layers } from "lucide-react";
+import { Boxes, Plus, SlidersHorizontal, Trash2, ArrowUpDown, ChevronRight, AlertTriangle, Layers, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -24,6 +24,7 @@ import {
 } from "@/components/common/ui-bits";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useCurrency, useInventory, useIsReadOnly, useStockStore } from "@/store/stockStore";
+import { exportStockInventoryExcel } from "@/services/export-reports";
 import { ADJUSTMENT_TYPES, type AdjustmentType, type InventoryItem } from "@/types";
 import {
   formatDate,
@@ -92,15 +93,27 @@ function StockPage() {
         title="Stock Inventory"
         subtitle={`Track on-hand units, weighted costs, and total stock valuation.`}
         action={
-          !isReadOnly ? (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className={btnPrimary}
-              onClick={() => handleOpenAdjust()}
+              className={btnOutline}
+              onClick={() => {
+                exportStockInventoryExcel(inventory, currency, threshold);
+                toast.success("Stock Inventory Excel downloaded!");
+              }}
             >
-              <Plus className="size-4" aria-hidden /> Adjust Stock
+              <Download className="size-4" aria-hidden /> Export Excel
             </button>
-          ) : undefined
+            {!isReadOnly && (
+              <button
+                type="button"
+                className={btnPrimary}
+                onClick={() => handleOpenAdjust()}
+              >
+                <Plus className="size-4" aria-hidden /> Adjust Stock
+              </button>
+            )}
+          </div>
         }
       />
 

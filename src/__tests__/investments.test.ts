@@ -43,18 +43,18 @@ describe("Investments feature", () => {
   it("should convert investments to Google Sheet rows and back without data loss", () => {
     const sheetRows = investmentsToSheet(sampleInvestments);
     expect(sheetRows).toHaveLength(2);
-    expect(sheetRows[0].record_id).toBe("INV-20261010-000001");
-    expect(sheetRows[0].investor).toBe("Usman Amjad");
-    expect(sheetRows[0].amount).toBe(500000);
-    expect(sheetRows[0].type).toBe("Capital Injection");
+    expect(sheetRows[0]!.record_id).toBe("INV-20261010-000001");
+    expect(sheetRows[0]!.investor).toBe("Usman Amjad");
+    expect(sheetRows[0]!.amount).toBe(500000);
+    expect(sheetRows[0]!.type).toBe("Capital Injection");
 
     const parsed = investmentsFromSheet(sheetRows);
     expect(parsed).toHaveLength(2);
-    expect(parsed[0].record_id).toBe("INV-20261010-000001");
-    expect(parsed[0].investor).toBe("Usman Amjad");
-    expect(parsed[0].amount).toBe(500000);
-    expect(parsed[0].type).toBe("Capital Injection");
-    expect(parsed[1].type).toBe("Drawings / Withdrawal");
+    expect(parsed[0]!.record_id).toBe("INV-20261010-000001");
+    expect(parsed[0]!.investor).toBe("Usman Amjad");
+    expect(parsed[0]!.amount).toBe(500000);
+    expect(parsed[0]!.type).toBe("Capital Injection");
+    expect(parsed[1]!.type).toBe("Drawings / Withdrawal");
   });
 
   it("should include investments in backup export and restore", () => {
@@ -73,6 +73,6 @@ describe("Investments feature", () => {
 
     const parsed = parseBackup(JSON.stringify(backup));
     expect(parsed.investments).toHaveLength(2);
-    expect(parsed.investments[0].investor).toBe("Usman Amjad");
+    expect(parsed.investments![0]!.investor).toBe("Usman Amjad");
   });
 });

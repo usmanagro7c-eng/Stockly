@@ -19,6 +19,10 @@ import {
   Edit3,
   Eye,
   CheckCircle2,
+  Sun,
+  Moon,
+  Check,
+  FileSpreadsheet as FileSpreadsheetIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -35,7 +39,14 @@ import {
   btnPrimary,
   inputClass,
 } from "@/components/common/ui-bits";
-import { useCurrency, useStockStore } from "@/store/stockStore";
+import { useCurrency, useInventory, useStockStore } from "@/store/stockStore";
+import { useTheme } from "@/hooks/use-theme";
+import {
+  exportStockInventoryExcel,
+  exportSalesReportExcel,
+  exportExpensesReportExcel,
+  exportCompleteBusinessWorkbook,
+} from "@/services/export-reports";
 import { buildBackup, downloadJSON, parseBackup } from "@/services/backup";
 import { hashPin, isValidPin, verifyPin } from "@/services/security";
 import {
@@ -49,6 +60,7 @@ import {
 import { syncManager } from "@/services/sync-manager";
 import type { BackupFile } from "@/types";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/settings")({
@@ -68,6 +80,12 @@ function SettingsPage() {
   const updateSettings = useStockStore((s) => s.updateSettings);
   const importData = useStockStore((s) => s.importData);
   const logExport = useStockStore((s) => s.logExport);
+  const inventory = useInventory();
+  const purchases = useStockStore((s) => s.purchases);
+  const sales = useStockStore((s) => s.sales);
+  const expenses = useStockStore((s) => s.expenses);
+  const investments = useStockStore((s) => s.investments);
+  const { theme, setTheme } = useTheme();
   const currency = useCurrency();
 
   /* --- Refs / state --- */
@@ -434,6 +452,112 @@ function SettingsPage() {
         </form>
       </Panel>
 
+      {/* ☀ Light Mode / Dark Mode / OLED Switcher */}
+      <Panel>
+        <SectionTitle
+          left={<Sun className="size-4" aria-hidden />}
+          right={
+            <span className="text-xs font-semibold capitalize text-primary">
+              {theme} Mode Active
+            </span>
+          }
+        >
+          Appearance & Theme
+        </SectionTitle>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose between Clean Light Mode for bright shop daylight, Default Business Dark, or Pure OLED Black.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {/* Light Mode */}
+          <button
+            type="button"
+            onClick={() => setTheme("light")}
+            className={cn(
+              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
+              theme === "light"
+                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
+            )}
+          >
+            <div className="flex w-full items-center justify-between">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                <Sun className="size-5" />
+              </div>
+              {theme === "light" && (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Check className="size-3" />
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">Clean Light Mode</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Crisp daylight white — high readability in shop sunlight.
+              </p>
+            </div>
+          </button>
+
+          {/* Dark Mode */}
+          <button
+            type="button"
+            onClick={() => setTheme("dark")}
+            className={cn(
+              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
+              theme === "dark"
+                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
+            )}
+          >
+            <div className="flex w-full items-center justify-between">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <Moon className="size-5" />
+              </div>
+              {theme === "dark" && (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Check className="size-3" />
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">Business Dark</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Default modern slate theme with balanced contrast.
+              </p>
+            </div>
+          </button>
+
+          {/* OLED Black Mode */}
+          <button
+            type="button"
+            onClick={() => setTheme("oled")}
+            className={cn(
+              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
+              theme === "oled"
+                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
+            )}
+          >
+            <div className="flex w-full items-center justify-between">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-800 text-zinc-100 border border-zinc-700">
+                <div className="size-3.5 rounded-full bg-black border border-zinc-500" />
+              </div>
+              {theme === "oled" && (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Check className="size-3" />
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground">OLED Black</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                True #000000 black — saves battery on AMOLED screens.
+              </p>
+            </div>
+          </button>
+        </div>
+      </Panel>
+
       {/* PIN Security */}
       <Panel>
         <SectionTitle
@@ -697,6 +821,116 @@ function SettingsPage() {
           </button>
           <button type="button" className={btnOutline} onClick={handleRestore}>
             <RotateCcw className="size-4" aria-hidden /> Restore Backup
+          </button>
+        </div>
+      </Panel>
+
+      {/* 📊 Excel & CSV Report Exports */}
+      <Panel>
+        <SectionTitle
+          left={<FileSpreadsheetIcon className="size-4 text-emerald-400" aria-hidden />}
+          right={
+            <span className="text-xs font-semibold text-emerald-400">
+              1-Click Instant Downloads
+            </span>
+          }
+        >
+          Export Reports (Excel & CSV)
+        </SectionTitle>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Download formatted Excel spreadsheets or accounting workbooks to share via WhatsApp, Email, or with your accountant.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {/* Master Workbook */}
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-left transition-all hover:bg-emerald-500/15 group"
+            onClick={() => {
+              exportCompleteBusinessWorkbook(
+                { inventory, sales, purchases, expenses, investments },
+                currency,
+              );
+              toast.success("Master Business Excel Workbook downloaded!");
+            }}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+              <FileSpreadsheetIcon className="size-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground group-hover:text-emerald-400 transition-colors">
+                Master Business Workbook (.xlsx)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                All-in-one file: Inventory, Sales, Purchases, Expenses & Investments
+              </p>
+            </div>
+          </button>
+
+          {/* Stock Inventory */}
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
+            onClick={() => {
+              exportStockInventoryExcel(inventory, currency, settings.low_stock_threshold);
+              toast.success("Stock Inventory Excel report downloaded!");
+            }}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
+              <Download className="size-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                Stock Inventory Report (.xlsx)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Item quantities, average cost prices, total stock valuation & status
+              </p>
+            </div>
+          </button>
+
+          {/* Sales History */}
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
+            onClick={() => {
+              exportSalesReportExcel(sales, currency);
+              toast.success("Sales History Excel report downloaded!");
+            }}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400">
+              <Download className="size-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                Sales & Profit History (.xlsx)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                All recorded customer sales, revenue, profit margins & quantities
+              </p>
+            </div>
+          </button>
+
+          {/* Expenses Sheet */}
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
+            onClick={() => {
+              exportExpensesReportExcel(expenses, currency);
+              toast.success("Expenses Excel sheet downloaded!");
+            }}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+              <Download className="size-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                Shop Expenses Sheet (.xlsx)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Categorized overheads, bills, maintenance and expense total
+              </p>
+            </div>
           </button>
         </div>
       </Panel>

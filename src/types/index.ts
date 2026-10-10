@@ -99,6 +99,7 @@ export interface Settings {
   pin_code_hash: string;
   linked_file_name: string;
   last_sync_time: string;
+  theme_mode?: "light" | "dark" | "oled";
 }
 
 export interface InventoryItem {
