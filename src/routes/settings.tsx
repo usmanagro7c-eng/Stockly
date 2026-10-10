@@ -1004,14 +1004,35 @@ function SettingsPage() {
                   <p className="text-sm font-semibold text-foreground">Google Account</p>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {connectedEmail
-                    ? `Active account: ${connectedEmail}`
-                    : "Sign in with the Gmail account that has access to the sheet."}
+                  {connectedEmail ? (
+                    <span>
+                      Active account: <strong className="text-foreground">{connectedEmail}</strong>
+                      {!isTokenValid() && (
+                        <span className="ml-2 inline-flex items-center text-amber-500 font-medium">
+                          · Session Expired (Click Reconnect)
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    "Sign in with the Gmail account that has access to the sheet."
+                  )}
                 </p>
               </div>
 
               {connectedEmail ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {!isTokenValid() && (
+                    <button
+                      type="button"
+                      onClick={handleSignInGoogle}
+                      disabled={signingIn}
+                      className={btnPrimary}
+                      title="Your 1-hour Google session has expired. Click to renew."
+                    >
+                      <RotateCcw className="size-4" aria-hidden />
+                      {signingIn ? "Reconnecting..." : "Reconnect Session"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleSignInGoogle}

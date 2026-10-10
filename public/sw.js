@@ -1,8 +1,9 @@
 // Stockly Service Worker — offline-first, app shell caching
-const CACHE_NAME = 'stockly-v7';
+const CACHE_NAME = 'stockly-v8';
 const MAX_CACHED_ENTRIES = 60;
 const PRECACHE_URLS = [
   '/',
+  '/index.html',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/apple-touch-icon.png',
@@ -13,7 +14,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => cache.addAll(PRECACHE_URLS).catch(() => undefined))
       .then(() => self.skipWaiting()),
   );
 });
@@ -29,20 +30,27 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
- * Cap what we keep. The cache used to grow without bound, which bloated storage
- * inside the app's WebView and slowed every navigation down.
+ * Cap what we keep.
  */
 async function trimCache(cache) {
-  const keys = await cache.keys();
-  if (keys.length <= MAX_CACHED_ENTRIES) return;
-  await Promise.all(keys.slice(0, keys.length - MAX_CACHED_ENTRIES).map((k) => cache.delete(k)));
+  try {
+    const keys = await cache.keys();
+    if (keys.length <= MAX_CACHED_ENTRIES) return;
+    await Promise.all(keys.slice(0, keys.length - MAX_CACHED_ENTRIES).map((k) => cache.delete(k)));
+  } catch {
+    // ignore
+  }
 }
 
 async function cachePut(request, response) {
   if (!response || !response.ok) return response;
-  const cache = await caches.open(CACHE_NAME);
-  await cache.put(request, response.clone());
-  await trimCache(cache);
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+    await trimCache(cache);
+  } catch {
+    // ignore
+  }
   return response;
 }
 
@@ -58,11 +66,18 @@ self.addEventListener('fetch', (event) => {
   const isAsset = ['style', 'script', 'image', 'font', 'manifest'].includes(request.destination);
 
   if (isNavigation) {
-    // Navigation: network-first, fallback to cached app shell
+    // Navigation: network-first, fallback to cached app shell or index.html
     event.respondWith(
       fetch(request)
         .then((response) => cachePut(request, response))
-        .catch(() => caches.match('/')),
+        .catch(async () => {
+          const cached = (await caches.match('/')) || (await caches.match('/index.html'));
+          if (cached) return cached;
+          return new Response('<!DOCTYPE html><html><body><h1>Stockly Offline</h1><p>Please check your connection and reload.</p></body></html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          });
+        }),
     );
     return;
   }
@@ -70,12 +85,21 @@ self.addEventListener('fetch', (event) => {
   if (isAsset) {
     // Assets: serve from cache immediately, refresh in the background
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const refreshed = fetch(request)
-          .then((response) => cachePut(request, response))
-          .catch(() => cached);
-        return cached || refreshed;
-      }),
+      (async () => {
+        const cached = await caches.match(request);
+        if (cached) {
+          fetch(request)
+            .then((res) => cachePut(request, res))
+            .catch(() => undefined);
+          return cached;
+        }
+        try {
+          const networkRes = await fetch(request);
+          return await cachePut(request, networkRes);
+        } catch {
+          return new Response('', { status: 408, statusText: 'Request Timeout' });
+        }
+      })(),
     );
     return;
   }
@@ -84,6 +108,10 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => cachePut(request, response))
-      .catch(() => caches.match(request)),
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return new Response('', { status: 408, statusText: 'Network error' });
+      }),
   );
 });

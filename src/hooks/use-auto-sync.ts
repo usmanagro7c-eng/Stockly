@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { syncManager } from "@/services/sync-manager";
 import { useStockStore } from "@/store/stockStore";
+import { isTokenValid } from "@/services/google-auth";
 
 const PULL_INTERVAL_MS = 60_000;
 /** App resume fires visibilitychange immediately; coalesce the burst. */
@@ -16,10 +17,12 @@ export function useAutoSync() {
   const inFlight = useRef(false);
 
   useEffect(() => {
-    useStockStore
-      .getState()
-      .refreshSheetPermission()
-      .catch(() => undefined);
+    if (isTokenValid()) {
+      useStockStore
+        .getState()
+        .refreshSheetPermission()
+        .catch(() => undefined);
+    }
 
     /**
      * Only ever one pull at a time. A single pass costs several HTTP round
@@ -30,7 +33,7 @@ export function useAutoSync() {
     const pull = async () => {
       if (inFlight.current) return;
       const { sheetRole, syncFromGoogleSheets } = useStockStore.getState();
-      if (!syncManager.isConnected() || sheetRole === null) return;
+      if (!syncManager.isConnected() || sheetRole === null || !isTokenValid()) return;
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
       inFlight.current = true;

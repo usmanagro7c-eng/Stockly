@@ -1,5 +1,5 @@
 import type { Purchase, Sale, Expense, Adjustment, ChangeLog, Investment } from "@/types";
-import { getGoogleRole, refreshAccessTokenSilently } from "./google-auth";
+import { getGoogleRole, isNativePlatform, refreshAccessTokenSilently } from "./google-auth";
 
 const SHEET_NAMES = {
   purchases: "purchases",
@@ -502,30 +502,37 @@ export class GoogleSheetsService {
 
     if (!response.ok) {
       if (response.status === 401) {
-        const refreshedToken = await refreshAccessTokenSilently().catch(() => null);
-        if (refreshedToken && refreshedToken !== token) {
-          this.accessToken = refreshedToken;
-          const retryHeaders: HeadersInit = {
-            ...headers,
-            Authorization: `Bearer ${refreshedToken}`,
-          };
-          const retryController = new AbortController();
-          const retryTimer = setTimeout(() => retryController.abort(), 15_000);
-          try {
-            const retryRes = await fetch(url, {
-              ...options,
-              headers: retryHeaders,
-              signal: retryController.signal,
-            });
-            if (retryRes.ok) {
-              return retryRes.json() as Promise<T>;
+        if (isNativePlatform()) {
+          const refreshedToken = await refreshAccessTokenSilently().catch(() => null);
+          if (refreshedToken && refreshedToken !== token) {
+            this.accessToken = refreshedToken;
+            const retryHeaders: HeadersInit = {
+              ...headers,
+              Authorization: `Bearer ${refreshedToken}`,
+            };
+            const retryController = new AbortController();
+            const retryTimer = setTimeout(() => retryController.abort(), 15_000);
+            try {
+              const retryRes = await fetch(url, {
+                ...options,
+                headers: retryHeaders,
+                signal: retryController.signal,
+              });
+              if (retryRes.ok) {
+                return retryRes.json() as Promise<T>;
+              }
+            } catch {
+              // fall through to error handling
+            } finally {
+              clearTimeout(retryTimer);
             }
-          } catch {
-            // fall through to error handling
-          } finally {
-            clearTimeout(retryTimer);
           }
         }
+        const err = new Error(
+          "Your Google session has expired. Please sign in again with Google in Settings.",
+        ) as Error & { status?: number };
+        err.status = 401;
+        throw err;
       }
 
       const error = await response.json().catch(() => ({}));

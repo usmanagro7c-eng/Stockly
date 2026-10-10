@@ -258,75 +258,25 @@ export async function authenticate(): Promise<AuthState> {
   return { isAuthenticated: true, hasToken: true, email };
 }
 
-let silentRefreshPromise: Promise<string | null> | null = null;
-
 /**
  * Attempt to acquire a fresh access token without prompting the user.
- * Returns null if silent renewal fails or is not available.
+ * Works natively on Capacitor Android/iOS. On web, GIS token flow requires direct user interaction.
  */
 export async function refreshAccessTokenSilently(): Promise<string | null> {
-  if (silentRefreshPromise) {
-    return silentRefreshPromise;
-  }
-
-  silentRefreshPromise = (async () => {
+  if (isNativePlatform()) {
     try {
-      if (isNativePlatform()) {
-        try {
-          const result = await GoogleSignIn.signIn();
-          if (result.accessToken) {
-            writeLocal("googleSheetToken", result.accessToken);
-            writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
-            if (result.email) writeLocal("googleSheetEmail", result.email);
-            return result.accessToken;
-          }
-        } catch {
-          return null;
-        }
-        return null;
+      const result = await GoogleSignIn.signIn();
+      if (result.accessToken) {
+        writeLocal("googleSheetToken", result.accessToken);
+        writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
+        if (result.email) writeLocal("googleSheetEmail", result.email);
+        return result.accessToken;
       }
-
-      const storedEmail = readLocal("googleSheetEmail");
-      const storedToken = readLocal("googleSheetToken");
-      if (!storedEmail && !storedToken) return null;
-
-      await initializeOAuth();
-      if (!oauthInstance) return null;
-
-      const token = await new Promise<string | null>((resolve) => {
-        const timeout = setTimeout(() => {
-          const i = pendingCallbacks.indexOf(waiter);
-          if (i !== -1) pendingCallbacks.splice(i, 1);
-          resolve(null);
-        }, SILENT_RENEWAL_TIMEOUT_MS);
-
-        const waiter = (result: TokenResult) => {
-          clearTimeout(timeout);
-          if (result.token) resolve(result.token);
-          else resolve(null);
-        };
-
-        pendingCallbacks.push(waiter);
-
-        try {
-          oauthInstance!.requestAccessToken({
-            prompt: "none",
-          });
-        } catch {
-          clearTimeout(timeout);
-          const i = pendingCallbacks.indexOf(waiter);
-          if (i !== -1) pendingCallbacks.splice(i, 1);
-          resolve(null);
-        }
-      });
-
-      return token;
-    } finally {
-      silentRefreshPromise = null;
+    } catch {
+      return null;
     }
-  })();
-
-  return silentRefreshPromise;
+  }
+  return null;
 }
 
 export function isTokenExpiringSoon(): boolean {
@@ -338,19 +288,18 @@ export function isTokenExpiringSoon(): boolean {
 }
 
 /**
- * Return a valid access token for the Sheets API.
- * Proactively attempts silent refresh if expiring soon,
- * and falls back to existing stored token to avoid pre-emptive sync failures.
+ * Return the stored access token for Google Sheets API requests.
  */
 export async function getAccessToken(): Promise<string | null> {
   const stored = readLocal("googleSheetToken");
   if (!stored) return null;
 
-  if (isNativePlatform()) return stored;
-
-  if (isTokenExpiringSoon()) {
-    const refreshed = await refreshAccessTokenSilently().catch(() => null);
-    if (refreshed) return refreshed;
+  if (isNativePlatform()) {
+    if (isTokenExpiringSoon()) {
+      const refreshed = await refreshAccessTokenSilently().catch(() => null);
+      if (refreshed) return refreshed;
+    }
+    return stored;
   }
 
   return stored;
