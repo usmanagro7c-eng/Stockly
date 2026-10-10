@@ -25,19 +25,14 @@ import { analyticsNav, primaryNav, systemNav } from "./nav-items";
 import { useStockStore } from "@/store/stockStore";
 import { useAutoSync } from "@/hooks/use-auto-sync";
 import { useTheme } from "@/hooks/use-theme";
+import { StocklyLogo } from "@/components/common/StocklyLogo";
 import { toast } from "sonner";
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-3 group transition-transform active:scale-95">
-      <div className="relative flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground shadow-md shadow-primary/25 ring-1 ring-white/20 transition-all group-hover:shadow-primary/40">
-        <svg viewBox="0 0 24 24" className="size-5.5" aria-hidden>
-          <path
-            fill="currentColor"
-            d="M12 2 4 7v10l8 5 8-5V7l-8-5Zm0 2.3L18 8v1.1l-6 3.4-6-3.4V8l6-3.7Z"
-          />
-          <path fill="currentColor" d="m6 11.2 5 2.8v5.3l-5-3.1v-5Zm12 0v5l-5 3.1V14l5-2.8Z" />
-        </svg>
+    <Link to="/" className="flex items-center gap-2.5 group transition-transform active:scale-95">
+      <div className="relative flex size-10 items-center justify-center transition-all">
+        <StocklyLogo className="size-full" />
       </div>
       {!compact && (
         <div className="flex flex-col">
@@ -383,60 +378,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Floating Ergonomic Dock (Modern Center-POS Design) */}
+      {/* Mobile Floating Ergonomic Dock (Buy -> Sell -> Home [Mid] -> Stock -> More) */}
       <nav
         aria-label="Mobile Navigation"
         className="fixed inset-x-3 bottom-2.5 z-30 lg:hidden select-none"
       >
         <div className="flex h-16 items-center justify-around rounded-2xl border border-border/80 bg-card/92 px-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 dark:ring-white/5">
-          {/* Tab 1: Home */}
-          <Link
-            to="/"
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
-              pathname === "/"
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <LayoutDashboard className={cn("size-5", pathname === "/" && "scale-105")} />
-            <span>Home</span>
-          </Link>
-
-          {/* Tab 2: Stock */}
-          <Link
-            to="/stock"
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
-              pathname.startsWith("/stock")
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Boxes className={cn("size-5", pathname.startsWith("/stock") && "scale-105")} />
-            <span>Stock</span>
-          </Link>
-
-          {/* Tab 3: Center Elevated POS Action Button */}
-          <Link
-            to="/sell"
-            className="group relative -mt-5 flex flex-col items-center justify-center transition-transform active:scale-90"
-            aria-label="Open POS Register"
-          >
-            <div className={cn(
-              "flex size-12 items-center justify-center rounded-2xl shadow-lg ring-4 ring-background transition-transform group-hover:scale-105",
-              pathname.startsWith("/sell")
-                ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/40"
-                : "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-600/30",
-            )}>
-              <Tag className="size-5.5" />
-            </div>
-            <span className={cn("mt-1 text-[10px] font-bold tracking-tight", pathname.startsWith("/sell") ? "text-primary" : "text-muted-foreground")}>
-              POS
-            </span>
-          </Link>
-
-          {/* Tab 4: Buy */}
+          {/* Tab 1: Buy */}
           <Link
             to="/buy"
             className={cn(
@@ -448,6 +396,53 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ShoppingCart className={cn("size-5", pathname.startsWith("/buy") && "scale-105")} />
             <span>Buy</span>
+          </Link>
+
+          {/* Tab 2: Sell */}
+          <Link
+            to="/sell"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              pathname.startsWith("/sell")
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Tag className={cn("size-5", pathname.startsWith("/sell") && "scale-105")} />
+            <span>Sell</span>
+          </Link>
+
+          {/* Tab 3: Center Elevated Home Button (Mid) */}
+          <Link
+            to="/"
+            className="group relative -mt-5 flex flex-col items-center justify-center transition-transform active:scale-90"
+            aria-label="Home Dashboard"
+          >
+            <div className={cn(
+              "flex size-12 items-center justify-center rounded-2xl shadow-lg ring-4 ring-background transition-transform group-hover:scale-105",
+              pathname === "/"
+                ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/40"
+                : "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-600/30",
+            )}>
+              <LayoutDashboard className="size-5.5" />
+            </div>
+            <span className={cn("mt-1 text-[10px] font-bold tracking-tight", pathname === "/" ? "text-primary" : "text-muted-foreground")}>
+              Home
+            </span>
+          </Link>
+
+          {/* Tab 4: Stock */}
+          <Link
+            to="/stock"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              pathname.startsWith("/stock")
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Boxes className={cn("size-5", pathname.startsWith("/stock") && "scale-105")} />
+            <span>Stock</span>
           </Link>
 
           {/* Tab 5: More Menu Button */}

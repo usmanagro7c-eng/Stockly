@@ -152,16 +152,39 @@ export class SyncManager {
     }
   }
 
+  private inFlightPush: Promise<void> | null = null;
+
   /**
    * Merge two record lists keyed by record_id/change_id.
    * When both sides have the same key, the newer updated_at wins.
+   * If a deletedMap is provided and a record's id is marked deleted, it is omitted.
    */
-  mergeRecords<T>(local: T[], remote: T[], key: MergeKey): T[] {
+  mergeRecords<T>(
+    local: T[],
+    remote: T[],
+    key: MergeKey,
+    deletedMap?: Map<string, string>,
+  ): T[] {
     const map = new Map<string, T>();
     const index = (k: MergeKey) => (r: T) => String((r as Record<string, unknown>)[k] ?? "");
-    for (const r of local) map.set(index(key)(r), r);
+
+    const isDeleted = (id: string, record: T): boolean => {
+      if (!deletedMap || !deletedMap.has(id)) return false;
+      const deleteTs = deletedMap.get(id);
+      const rec = record as Record<string, unknown>;
+      const recTs = String(rec.updated_at || rec.created_at || "");
+      if (!deleteTs || !recTs) return true;
+      return recTs <= deleteTs;
+    };
+
+    for (const r of local) {
+      const id = index(key)(r);
+      if (id && isDeleted(id, r)) continue;
+      map.set(id, r);
+    }
     for (const r of remote) {
       const id = index(key)(r);
+      if (id && isDeleted(id, r)) continue;
       const existing = map.get(id);
       if (!existing || newestFirst(existing, r) >= 0) {
         map.set(id, existing && newestFirst(existing, r) === 0 ? existing : r);
@@ -172,63 +195,100 @@ export class SyncManager {
 
   /**
    * Push local DB to the Google Sheet. First pulls the latest remote data and
-   * merges (newest-wins) so concurrent users converge instead of clobbering.
+   * merges (newest-wins, honoring deletions) so concurrent users converge instead of clobbering.
    */
   async syncToSheets(): Promise<void> {
-    this.requireOnline();
-    const sheetId = this.currentSheetId;
-    if (!sheetId) throw new Error("No Google sheet connected");
-    await this.configureSheets();
-
-    try {
-      await sheetsService.ensureSheetsExist();
-    } catch (err) {
-      const status = (err as { status?: number })?.status;
-      if (status === 403) {
-        this.setRole("read");
-        throw new Error("Syncing failed — this Google account appears to have read-only access");
-      }
-      throw err;
+    if (this.inFlightPush) {
+      await this.inFlightPush;
+      if (!this.dirty) return;
     }
 
-    const sheetData = await sheetsService.getSheetData();
-    const local = await repository.loadAll();
-    const dataAsSheet: SheetData = {
-      purchases: this.mergeRecords<SheetRow>(
-        purchasesToSheet(local.purchases),
-        sheetData.purchases ?? [],
-        KEY_BY_TABLE.purchases,
-      ),
-      sales: this.mergeRecords<SheetRow>(
-        salesToSheet(local.sales),
-        sheetData.sales ?? [],
-        KEY_BY_TABLE.sales,
-      ),
-      expenses: this.mergeRecords<SheetRow>(
-        expensesToSheet(local.expenses),
-        sheetData.expenses ?? [],
-        KEY_BY_TABLE.expenses,
-      ),
-      adjustments: this.mergeRecords<SheetRow>(
-        adjustmentsToSheet(local.adjustments),
-        sheetData.adjustments ?? [],
-        KEY_BY_TABLE.adjustments,
-      ),
-      changelogs: this.mergeRecords<SheetRow>(
+    const pushPromise = (async () => {
+      this.requireOnline();
+      const sheetId = this.currentSheetId;
+      if (!sheetId) throw new Error("No Google sheet connected");
+      await this.configureSheets();
+
+      try {
+        await sheetsService.ensureSheetsExist();
+      } catch (err) {
+        const status = (err as { status?: number })?.status;
+        if (status === 403) {
+          this.setRole("read");
+          throw new Error("Syncing failed — this Google account appears to have read-only access");
+        }
+        throw err;
+      }
+
+      const sheetData = await sheetsService.getSheetData();
+      const local = await repository.loadAll();
+
+      const mergedChangelogs = this.mergeRecords<SheetRow>(
         changelogsToSheet(local.changelogs),
         sheetData.changelogs ?? [],
         KEY_BY_TABLE.changelogs,
-      ),
-      investments: this.mergeRecords<SheetRow>(
-        investmentsToSheet(local.investments),
-        sheetData.investments ?? [],
-        KEY_BY_TABLE.investments,
-      ),
-    };
+      );
 
-    await sheetsService.writeSheetData(dataAsSheet);
-    this.dirty = false;
-    await this.touchLastSync(local.settings, sheetId);
+      const deletedMap = new Map<string, string>();
+      for (const row of mergedChangelogs) {
+        const action = String(row.action || "").toUpperCase();
+        const recId = String(row.record_id || "");
+        const ts = String(row.timestamp || "");
+        if (action === "DELETE" && recId) {
+          const prev = deletedMap.get(recId) || "";
+          if (ts >= prev) {
+            deletedMap.set(recId, ts);
+          }
+        }
+      }
+
+      const dataAsSheet: SheetData = {
+        purchases: this.mergeRecords<SheetRow>(
+          purchasesToSheet(local.purchases),
+          sheetData.purchases ?? [],
+          KEY_BY_TABLE.purchases,
+          deletedMap,
+        ),
+        sales: this.mergeRecords<SheetRow>(
+          salesToSheet(local.sales),
+          sheetData.sales ?? [],
+          KEY_BY_TABLE.sales,
+          deletedMap,
+        ),
+        expenses: this.mergeRecords<SheetRow>(
+          expensesToSheet(local.expenses),
+          sheetData.expenses ?? [],
+          KEY_BY_TABLE.expenses,
+          deletedMap,
+        ),
+        adjustments: this.mergeRecords<SheetRow>(
+          adjustmentsToSheet(local.adjustments),
+          sheetData.adjustments ?? [],
+          KEY_BY_TABLE.adjustments,
+          deletedMap,
+        ),
+        changelogs: mergedChangelogs,
+        investments: this.mergeRecords<SheetRow>(
+          investmentsToSheet(local.investments),
+          sheetData.investments ?? [],
+          KEY_BY_TABLE.investments,
+          deletedMap,
+        ),
+      };
+
+      await sheetsService.writeSheetData(dataAsSheet);
+      this.dirty = false;
+      await this.touchLastSync(local.settings, sheetId);
+    })();
+
+    this.inFlightPush = pushPromise;
+    try {
+      await pushPromise;
+    } finally {
+      if (this.inFlightPush === pushPromise) {
+        this.inFlightPush = null;
+      }
+    }
   }
 
   /**
@@ -251,36 +311,56 @@ export class SyncManager {
     const sheetData = await sheetsService.getSheetData();
     const local = await repository.loadAll();
 
+    const mergedChangelogs = this.mergeRecords<ChangeLog>(
+      local.changelogs,
+      changelogsFromSheet(sheetData.changelogs ?? []),
+      KEY_BY_TABLE.changelogs,
+    );
+
+    const deletedMap = new Map<string, string>();
+    for (const log of mergedChangelogs) {
+      const action = String(log.action || "").toUpperCase();
+      const recId = String(log.record_id || "");
+      const ts = String(log.timestamp || "");
+      if (action === "DELETE" && recId) {
+        const prev = deletedMap.get(recId) || "";
+        if (ts >= prev) {
+          deletedMap.set(recId, ts);
+        }
+      }
+    }
+
     const merged = {
       purchases: this.mergeRecords<Purchase>(
         local.purchases,
         purchasesFromSheet(sheetData.purchases ?? []),
         KEY_BY_TABLE.purchases,
+        deletedMap,
       ),
       sales: this.mergeRecords<Sale>(
         local.sales,
         salesFromSheet(sheetData.sales ?? []),
         KEY_BY_TABLE.sales,
+        deletedMap,
       ),
       expenses: this.mergeRecords<Expense>(
         local.expenses,
         expensesFromSheet(sheetData.expenses ?? []),
         KEY_BY_TABLE.expenses,
+        deletedMap,
       ),
       adjustments: this.mergeRecords<Adjustment>(
         local.adjustments,
         adjustmentsFromSheet(sheetData.adjustments ?? []),
         KEY_BY_TABLE.adjustments,
+        deletedMap,
       ),
-      changelogs: this.mergeRecords<ChangeLog>(
-        local.changelogs,
-        changelogsFromSheet(sheetData.changelogs ?? []),
-        KEY_BY_TABLE.changelogs,
-      ),
+      changelogs: mergedChangelogs,
       investments: this.mergeRecords<Investment>(
         local.investments,
         investmentsFromSheet(sheetData.investments ?? []),
         KEY_BY_TABLE.investments,
+        deletedMap,
       ),
     };
 
@@ -289,11 +369,13 @@ export class SyncManager {
     return { ...merged, settings };
   }
 
-  /** Mark pending local changes and schedule a debounced push (≈3s). */
-  markDirty(): void {
-    if (!this.isConnected() || this.role === "read") return;
+  /** Mark pending local changes and schedule a debounced push (immediate: 500ms, normal: 3000ms). */
+  markDirty(immediate = false): void {
+    const role = this.getRole();
+    if (!this.isConnected() || role === "read") return;
     this.dirty = true;
     if (this.pushTimer) clearTimeout(this.pushTimer);
+    const delay = immediate ? 500 : 3000;
     this.pushTimer = setTimeout(() => {
       this.pushTimer = null;
       void this.syncToSheets().catch((error) => {
@@ -302,7 +384,7 @@ export class SyncManager {
           console.warn("Auto-sync push failed:", error);
         }
       });
-    }, 3000);
+    }, delay);
   }
 
   hasPendingChanges(): boolean {

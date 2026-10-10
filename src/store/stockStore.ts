@@ -180,7 +180,7 @@ export const useStockStore = create<State>((set, get) => ({
       new_value: String(row.total_cost),
       remarks: row.remarks,
     });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
     return row;
   },
 
@@ -201,7 +201,7 @@ export const useStockStore = create<State>((set, get) => ({
         new_value: "",
         remarks: row.remarks,
       });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
   },
 
   saveSale: async (input, editingId) => {
@@ -245,7 +245,7 @@ export const useStockStore = create<State>((set, get) => ({
       new_value: String(row.total_sale),
       remarks: row.remarks,
     });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
     return row;
   },
 
@@ -266,7 +266,7 @@ export const useStockStore = create<State>((set, get) => ({
         new_value: "",
         remarks: "Stock restored",
       });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
   },
 
   saveExpense: async (input, editingId) => {
@@ -306,7 +306,7 @@ export const useStockStore = create<State>((set, get) => ({
       new_value: String(row.amount),
       remarks: row.remarks,
     });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
     return row;
   },
 
@@ -327,7 +327,7 @@ export const useStockStore = create<State>((set, get) => ({
         new_value: "",
         remarks: row.remarks,
       });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
   },
 
   saveAdjustment: async (input) => {
@@ -358,7 +358,7 @@ export const useStockStore = create<State>((set, get) => ({
       new_value: row.type,
       remarks: row.reason,
     });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
     return row;
   },
 
@@ -379,7 +379,7 @@ export const useStockStore = create<State>((set, get) => ({
         new_value: "",
         remarks: row.reason,
       });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
   },
 
   saveInvestment: async (input, editingId) => {
@@ -420,7 +420,7 @@ export const useStockStore = create<State>((set, get) => ({
       new_value: String(row.amount),
       remarks: row.remarks,
     });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
     return row;
   },
 
@@ -441,7 +441,7 @@ export const useStockStore = create<State>((set, get) => ({
         new_value: "",
         remarks: row.remarks,
       });
-    syncManager.markDirty();
+    syncManager.markDirty(true);
   },
 
   updateSettings: async (patch) => {

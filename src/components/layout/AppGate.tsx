@@ -5,6 +5,7 @@ import { useStockStore } from "@/store/stockStore";
 import { generateDeviceId } from "@/services/ids";
 import { verifyPin } from "@/services/security";
 import { inputClass, btnPrimary } from "@/components/common/ui-bits";
+import { StocklyLogo } from "@/components/common/StocklyLogo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -62,8 +63,8 @@ export function AppGate({ children }: { children: ReactNode }) {
     }
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <div className="relative flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground shadow-lg shadow-primary/30">
-          <Loader2 className="size-6 animate-spin text-primary-foreground" aria-label="Loading Stockly" />
+        <div className="relative flex size-20 items-center justify-center">
+          <StocklyLogo className="size-full animate-pulse" />
         </div>
         <p className="text-xs font-semibold text-muted-foreground">Loading Stockly...</p>
       </div>
@@ -96,8 +97,8 @@ function SetupScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <form onSubmit={submit} className="surface w-full max-w-md p-6 sm:p-8 shadow-pop border-border/80">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary mb-4 ring-1 ring-primary/30">
-          <Store className="size-6" />
+        <div className="flex size-16 items-center justify-center mb-4">
+          <StocklyLogo className="size-full" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Set up Stockly</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -179,10 +180,10 @@ function PinLockScreen() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10 select-none">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30 shadow-md">
-        <LockKeyhole className="size-7" aria-hidden />
-      </span>
-      <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">Enter your PIN</h1>
+      <div className="relative flex size-20 items-center justify-center mb-3">
+        <StocklyLogo className="size-full" />
+      </div>
+      <h1 className="mt-2 text-xl font-bold tracking-tight text-foreground">Enter your PIN</h1>
       <p className="mt-1 text-sm text-muted-foreground">Stockly is locked for your security.</p>
 
       {/* PIN dots */}

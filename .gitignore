@@ -25,6 +25,7 @@ dist-capacitor
 # Capacitor native platforms
 android/
 ios/
+*.apk
 
 # Playwright MCP
 .playwright-mcp/
