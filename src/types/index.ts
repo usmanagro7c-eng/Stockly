@@ -55,7 +55,26 @@ export interface Adjustment {
 }
 
 export type ChangeAction = "ADD" | "EDIT" | "DELETE" | "IMPORT" | "EXPORT" | "SYNC";
-export type ChangeSection = "BUY" | "SELL" | "EXPENSE" | "STOCK_ADJUSTMENT";
+export type ChangeSection = "BUY" | "SELL" | "EXPENSE" | "STOCK_ADJUSTMENT" | "INVESTMENT";
+
+export type InvestmentType =
+  | "Capital Injection"
+  | "Partner Contribution"
+  | "Loan / Borrowing"
+  | "Drawings / Withdrawal";
+
+export interface Investment {
+  record_id: string;
+  date: string;
+  investor: string;
+  amount: number;
+  type: InvestmentType;
+  remarks: string;
+  created_by: string;
+  created_at: string;
+  updated_by: string;
+  updated_at: string;
+}
 
 export interface ChangeLog {
   change_id: string;
@@ -119,7 +138,15 @@ export interface BackupFile {
   expenses: Expense[];
   adjustments: Adjustment[];
   changelogs: ChangeLog[];
+  investments?: Investment[];
 }
+
+export const INVESTMENT_TYPES: InvestmentType[] = [
+  "Capital Injection",
+  "Partner Contribution",
+  "Loan / Borrowing",
+  "Drawings / Withdrawal",
+];
 
 export const EXPENSE_CATEGORIES = [
   "Delivery",

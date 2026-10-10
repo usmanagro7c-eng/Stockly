@@ -1,5 +1,5 @@
 import { repository } from "./database/repository";
-import type { Purchase, Sale, Expense, Adjustment, ChangeLog, Settings } from "@/types";
+import type { Purchase, Sale, Expense, Adjustment, ChangeLog, Investment, Settings } from "@/types";
 import {
   sheetsService,
   purchasesToSheet,
@@ -7,11 +7,13 @@ import {
   expensesToSheet,
   adjustmentsToSheet,
   changelogsToSheet,
+  investmentsToSheet,
   purchasesFromSheet,
   salesFromSheet,
   expensesFromSheet,
   adjustmentsFromSheet,
   changelogsFromSheet,
+  investmentsFromSheet,
   type SheetData,
   type SheetRow,
 } from "./google-sheets";
@@ -39,6 +41,7 @@ export interface SyncedData {
   expenses: Expense[];
   adjustments: Adjustment[];
   changelogs: ChangeLog[];
+  investments: Investment[];
   settings: Settings;
 }
 
@@ -48,6 +51,7 @@ const KEY_BY_TABLE = {
   expenses: "record_id",
   adjustments: "record_id",
   changelogs: "change_id",
+  investments: "record_id",
 } as const;
 
 function newestFirst<T>(a: T, b: T): number {
@@ -211,6 +215,11 @@ export class SyncManager {
         sheetData.changelogs ?? [],
         KEY_BY_TABLE.changelogs,
       ),
+      investments: this.mergeRecords<SheetRow>(
+        investmentsToSheet(local.investments),
+        sheetData.investments ?? [],
+        KEY_BY_TABLE.investments,
+      ),
     };
 
     await sheetsService.writeSheetData(dataAsSheet);
@@ -263,6 +272,11 @@ export class SyncManager {
         local.changelogs,
         changelogsFromSheet(sheetData.changelogs ?? []),
         KEY_BY_TABLE.changelogs,
+      ),
+      investments: this.mergeRecords<Investment>(
+        local.investments,
+        investmentsFromSheet(sheetData.investments ?? []),
+        KEY_BY_TABLE.investments,
       ),
     };
 

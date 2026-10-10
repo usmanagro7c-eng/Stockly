@@ -14,6 +14,7 @@ import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as BuyRouteImport } from './routes/buy'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as InvestmentsRouteImport } from './routes/investments'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -44,6 +45,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvestmentsRoute = InvestmentsRouteImport.update({
+  id: '/investments',
+  path: '/investments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/buy': typeof BuyRoute
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
+  '/investments': typeof InvestmentsRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/buy': typeof BuyRoute
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
+  '/investments': typeof InvestmentsRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/buy': typeof BuyRoute
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
+  '/investments': typeof InvestmentsRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/buy'
     | '/expenses'
     | '/history'
+    | '/investments'
     | '/reports'
     | '/sell'
     | '/settings'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/buy'
     | '/expenses'
     | '/history'
+    | '/investments'
     | '/reports'
     | '/sell'
     | '/settings'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/buy'
     | '/expenses'
     | '/history'
+    | '/investments'
     | '/reports'
     | '/sell'
     | '/settings'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   BuyRoute: typeof BuyRoute
   ExpensesRoute: typeof ExpensesRoute
   HistoryRoute: typeof HistoryRoute
+  InvestmentsRoute: typeof InvestmentsRoute
   ReportsRoute: typeof ReportsRoute
   SellRoute: typeof SellRoute
   SettingsRoute: typeof SettingsRoute
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/investments': {
+      id: '/investments'
+      path: '/investments'
+      fullPath: '/investments'
+      preLoaderRoute: typeof InvestmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuyRoute: BuyRoute,
   ExpensesRoute: ExpensesRoute,
   HistoryRoute: HistoryRoute,
+  InvestmentsRoute: InvestmentsRoute,
   ReportsRoute: ReportsRoute,
   SellRoute: SellRoute,
   SettingsRoute: SettingsRoute,

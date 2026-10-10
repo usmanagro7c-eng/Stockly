@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-export type IdPrefix = "BUY" | "SELL" | "EXPENSE" | "ADJ" | "CHANGE";
+export type IdPrefix = "BUY" | "SELL" | "EXPENSE" | "ADJ" | "CHANGE" | "INV";
 
 /**
  * Generates sequential, collision-safe record IDs of the form

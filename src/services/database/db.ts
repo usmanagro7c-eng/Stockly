@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { Adjustment, ChangeLog, Expense, Purchase, Sale, Settings } from "@/types";
+import type { Adjustment, ChangeLog, Expense, Investment, Purchase, Sale, Settings } from "@/types";
 
 export interface SettingsRow extends Settings {
   id: string;
@@ -14,6 +14,7 @@ export type StocklyDB = Dexie & {
   expenses: EntityTable<Expense, "record_id">;
   adjustments: EntityTable<Adjustment, "record_id">;
   changelogs: EntityTable<ChangeLog, "change_id">;
+  investments: EntityTable<Investment, "record_id">;
   settings: EntityTable<SettingsRow, "id">;
 };
 
@@ -26,6 +27,9 @@ function createDB(): StocklyDB {
     adjustments: "record_id, model, date, created_at",
     changelogs: "change_id, timestamp, user, action, section, record_id",
     settings: "id",
+  });
+  db.version(2).stores({
+    investments: "record_id, investor, type, date, created_at",
   });
   return db;
 }

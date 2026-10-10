@@ -32,6 +32,7 @@ export function parseBackup(raw: string): BackupFile {
     expenses: arr(b.expenses),
     adjustments: arr(b.adjustments),
     changelogs: arr(b.changelogs),
+    investments: arr(b.investments),
   };
 }
 

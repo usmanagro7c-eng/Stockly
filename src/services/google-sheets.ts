@@ -1,4 +1,4 @@
-import type { Purchase, Sale, Expense, Adjustment, ChangeLog } from "@/types";
+import type { Purchase, Sale, Expense, Adjustment, ChangeLog, Investment } from "@/types";
 
 const SHEET_NAMES = {
   purchases: "purchases",
@@ -6,6 +6,7 @@ const SHEET_NAMES = {
   expenses: "expenses",
   adjustments: "adjustments",
   changelogs: "changelogs",
+  investments: "investments",
 } as const;
 
 // Column definitions for each sheet
@@ -73,6 +74,18 @@ const SHEET_COLUMNS = {
     "old_value",
     "new_value",
     "remarks",
+  ],
+  [SHEET_NAMES.investments]: [
+    "record_id",
+    "date",
+    "investor",
+    "amount",
+    "type",
+    "remarks",
+    "created_by",
+    "created_at",
+    "updated_by",
+    "updated_at",
   ],
 };
 
@@ -327,6 +340,36 @@ export function changelogsFromSheet(rows: SheetRow[]): ChangeLog[] {
     old_value: String(r.old_value || ""),
     new_value: String(r.new_value || ""),
     remarks: String(r.remarks || ""),
+  }));
+}
+
+export function investmentsToSheet(investments: Investment[]): SheetRow[] {
+  return investments.map((inv) => ({
+    record_id: inv.record_id,
+    date: inv.date,
+    investor: inv.investor,
+    amount: inv.amount,
+    type: inv.type,
+    remarks: inv.remarks,
+    created_by: inv.created_by,
+    created_at: inv.created_at,
+    updated_by: inv.updated_by,
+    updated_at: inv.updated_at,
+  }));
+}
+
+export function investmentsFromSheet(rows: SheetRow[]): Investment[] {
+  return rows.map((r) => ({
+    record_id: String(r.record_id || ""),
+    date: String(r.date || ""),
+    investor: String(r.investor || ""),
+    amount: Number(r.amount) || 0,
+    type: (String(r.type || "Capital Injection") as Investment["type"]),
+    remarks: String(r.remarks || ""),
+    created_by: String(r.created_by || ""),
+    created_at: String(r.created_at || ""),
+    updated_by: String(r.updated_by || ""),
+    updated_at: String(r.updated_at || ""),
   }));
 }
 

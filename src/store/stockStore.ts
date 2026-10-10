@@ -10,6 +10,8 @@ import type {
   ChangeLog,
   ChangeSection,
   Expense,
+  Investment,
+  InvestmentType,
   Purchase,
   Sale,
   Settings,
@@ -24,6 +26,7 @@ interface State {
   expenses: Expense[];
   adjustments: Adjustment[];
   changelogs: ChangeLog[];
+  investments: Investment[];
   settings: Settings;
   sheetRole: SheetRole;
 
@@ -39,6 +42,8 @@ interface State {
   deleteExpense: (id: string) => Promise<void>;
   saveAdjustment: (input: AdjustmentInput) => Promise<Adjustment>;
   deleteAdjustment: (id: string) => Promise<void>;
+  saveInvestment: (input: InvestmentInput, editingId?: string) => Promise<Investment>;
+  deleteInvestment: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   importData: (
     data: {
@@ -47,6 +52,7 @@ interface State {
       expenses: Expense[];
       adjustments: Adjustment[];
       changelogs: ChangeLog[];
+      investments?: Investment[];
     },
     mode: "merge" | "replace",
   ) => Promise<void>;
@@ -88,6 +94,13 @@ export interface AdjustmentInput {
   type: Adjustment["type"];
   reason: string;
 }
+export interface InvestmentInput {
+  date: string;
+  investor: string;
+  amount: number;
+  type: InvestmentType;
+  remarks: string;
+}
 
 export const useStockStore = create<State>((set, get) => ({
   ready: false,
@@ -98,6 +111,7 @@ export const useStockStore = create<State>((set, get) => ({
   expenses: [],
   adjustments: [],
   changelogs: [],
+  investments: [],
   settings: { ...DEFAULT_SETTINGS },
   sheetRole: syncManager.getRole(),
 
@@ -368,6 +382,68 @@ export const useStockStore = create<State>((set, get) => ({
     syncManager.markDirty();
   },
 
+  saveInvestment: async (input, editingId) => {
+    assertCanEdit();
+    const { investments, settings } = get();
+    const now = new Date().toISOString();
+    const existing = editingId ? investments.find((i) => i.record_id === editingId) : undefined;
+    const row: Investment = {
+      record_id:
+        existing?.record_id ??
+        generateRecordId(
+          "INV",
+          investments.map((i) => i.record_id),
+        ),
+      date: input.date,
+      investor: input.investor.trim(),
+      amount: input.amount,
+      type: input.type,
+      remarks: input.remarks.trim(),
+      created_by: existing?.created_by ?? settings.user_name,
+      created_at: existing?.created_at ?? now,
+      updated_by: settings.user_name,
+      updated_at: now,
+    };
+    await repository.investments.put(row);
+    set({
+      investments: existing
+        ? investments.map((i) => (i.record_id === row.record_id ? row : i))
+        : [...investments, row],
+    });
+    await addLog({
+      action: existing ? "EDIT" : "ADD",
+      section: "INVESTMENT",
+      record_id: row.record_id,
+      model: `${row.investor} (${row.type})`,
+      quantity: 0,
+      old_value: existing ? String(existing.amount) : "",
+      new_value: String(row.amount),
+      remarks: row.remarks,
+    });
+    syncManager.markDirty();
+    return row;
+  },
+
+  deleteInvestment: async (id) => {
+    assertCanEdit();
+    const { investments } = get();
+    const row = investments.find((i) => i.record_id === id);
+    await repository.investments.remove(id);
+    set({ investments: investments.filter((i) => i.record_id !== id) });
+    if (row)
+      await addLog({
+        action: "DELETE",
+        section: "INVESTMENT",
+        record_id: id,
+        model: `${row.investor} (${row.type})`,
+        quantity: 0,
+        old_value: String(row.amount),
+        new_value: "",
+        remarks: row.remarks,
+      });
+    syncManager.markDirty();
+  },
+
   updateSettings: async (patch) => {
     const current = get().settings;
     let changed = false;
@@ -396,6 +472,7 @@ export const useStockStore = create<State>((set, get) => ({
         expenses: data.expenses,
         adjustments: data.adjustments,
         changelogs: data.changelogs,
+        investments: data.investments ?? [],
       });
     } else {
       await repository.mergeAll(data);
@@ -411,6 +488,7 @@ export const useStockStore = create<State>((set, get) => ({
         expenses: merge(s.expenses, data.expenses, "record_id"),
         adjustments: merge(s.adjustments, data.adjustments, "record_id"),
         changelogs: merge(s.changelogs, data.changelogs, "change_id"),
+        investments: merge(s.investments, data.investments ?? [], "record_id"),
       });
     }
     // An imported backup can carry a huge audit trail; trim it back down so
@@ -503,6 +581,7 @@ export const useStockStore = create<State>((set, get) => ({
       expenses: data.expenses,
       adjustments: data.adjustments,
       changelogs: data.changelogs,
+      investments: data.investments,
       settings: data.settings,
     });
     if (log) {
@@ -605,5 +684,9 @@ export function useCurrency() {
 
 export function useIsReadOnly() {
   return useStockStore((s) => s.sheetRole === "read");
+}
+
+export function useInvestments() {
+  return useStockStore((s) => s.investments);
 }
 

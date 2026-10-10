@@ -1,7 +1,7 @@
 import type { EntityTable, Table } from "dexie";
 import { getDB } from "./db";
 import { generateDeviceId } from "@/services/ids";
-import type { Adjustment, ChangeLog, Expense, Purchase, Sale, Settings } from "@/types";
+import type { Adjustment, ChangeLog, Expense, Investment, Purchase, Sale, Settings } from "@/types";
 
 /**
  * Central storage repository. UI and store code talk to this layer only —
@@ -70,14 +70,16 @@ function sanitize<T extends object>(rows: unknown[], required: (keyof T)[]): T[]
 export const repository = {
   async loadAll() {
     const db = getDB();
-    const [purchases, sales, expenses, adjustments, changelogs, settingsRow] = await Promise.all([
-      db.purchases.toArray(),
-      db.sales.toArray(),
-      db.expenses.toArray(),
-      db.adjustments.toArray(),
-      db.changelogs.toArray(),
-      db.settings.get(SETTINGS_KEY),
-    ]);
+    const [purchases, sales, expenses, adjustments, changelogs, investments, settingsRow] =
+      await Promise.all([
+        db.purchases.toArray(),
+        db.sales.toArray(),
+        db.expenses.toArray(),
+        db.adjustments.toArray(),
+        db.changelogs.toArray(),
+        db.investments.toArray(),
+        db.settings.get(SETTINGS_KEY),
+      ]);
 
     let settings: Settings = settingsRow
       ? { ...DEFAULT_SETTINGS, ...settingsRow }
@@ -94,6 +96,7 @@ export const repository = {
       expenses: sanitize<Expense>(expenses, ["record_id", "amount"]),
       adjustments: sanitize<Adjustment>(adjustments, ["record_id", "model"]),
       changelogs: sanitize<ChangeLog>(changelogs, ["change_id"]),
+      investments: sanitize<Investment>(investments, ["record_id", "investor", "amount"]),
       settings,
     };
   },
@@ -122,32 +125,32 @@ export const repository = {
     put: (row: ChangeLog) => getDB().changelogs.put(row),
     remove: (ids: string[]) => getDB().changelogs.bulkDelete(ids),
   },
+  investments: {
+    put: (row: Investment) => getDB().investments.put(row),
+    remove: (id: string) => getDB().investments.delete(id),
+  },
 
-  /**
-   * Makes the local tables match `data` exactly.
-   *
-   * Writes only the rows that actually changed and deletes only the keys that
-   * disappeared, instead of clearing and rewriting all five tables. A sync
-   * typically touches a handful of rows, so the previous clear+bulkPut
-   * rewrote the whole database (including the whole changelog) on every pull.
-   */
   async replaceAll(data: {
     purchases: Purchase[];
     sales: Sale[];
     expenses: Expense[];
     adjustments: Adjustment[];
     changelogs: ChangeLog[];
+    investments?: Investment[];
   }) {
     const db = getDB();
     await db.transaction(
       "rw",
-      [db.purchases, db.sales, db.expenses, db.adjustments, db.changelogs],
+      [db.purchases, db.sales, db.expenses, db.adjustments, db.changelogs, db.investments],
       async () => {
         await syncTable(db.purchases, data.purchases, "record_id");
         await syncTable(db.sales, data.sales, "record_id");
         await syncTable(db.expenses, data.expenses, "record_id");
         await syncTable(db.adjustments, data.adjustments, "record_id");
         await syncTable(db.changelogs, data.changelogs, "change_id");
+        if (data.investments) {
+          await syncTable(db.investments, data.investments, "record_id");
+        }
       },
     );
   },
@@ -158,11 +161,12 @@ export const repository = {
     expenses: Expense[];
     adjustments: Adjustment[];
     changelogs: ChangeLog[];
+    investments?: Investment[];
   }) {
     const db = getDB();
     await db.transaction(
       "rw",
-      [db.purchases, db.sales, db.expenses, db.adjustments, db.changelogs],
+      [db.purchases, db.sales, db.expenses, db.adjustments, db.changelogs, db.investments],
       async () => {
         await Promise.all([
           db.purchases.bulkPut(data.purchases),
@@ -170,6 +174,9 @@ export const repository = {
           db.expenses.bulkPut(data.expenses),
           db.adjustments.bulkPut(data.adjustments),
           db.changelogs.bulkPut(data.changelogs),
+          data.investments && data.investments.length
+            ? db.investments.bulkPut(data.investments)
+            : Promise.resolve(),
         ]);
       },
     );
