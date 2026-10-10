@@ -50,7 +50,7 @@ export function SectionTitle({
 
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cn("surface p-4.5 sm:p-6 transition-all duration-200", className)}>
+    <section className={cn("surface rounded-3xl p-4 sm:p-6 transition-all duration-200", className)}>
       {children}
     </section>
   );
@@ -195,7 +195,7 @@ export function Field({
 }
 
 export const inputClass =
-  "h-11 w-full rounded-xl border border-border/80 bg-elevated/70 px-3.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/80 focus:ring-2 focus:ring-primary/20 disabled:opacity-50";
+  "h-12 w-full rounded-2xl border border-border/80 bg-elevated/70 px-4 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/80 focus:ring-2 focus:ring-primary/25 disabled:opacity-50";
 
 /** "Load N more" footer paired with `useListPaging`. */
 export function LoadMore({
@@ -218,7 +218,7 @@ export function LoadMore({
         <button
           type="button"
           onClick={onLoadMore}
-          className="min-h-11 w-full rounded-xl border border-border/80 bg-elevated/60 text-sm font-medium transition-all hover:bg-accent active:scale-[0.99]"
+          className="min-h-12 w-full rounded-2xl border border-border/80 bg-elevated/60 text-sm font-semibold transition-all hover:bg-accent active:scale-[0.98]"
         >
           Load {Math.min(LIST_PAGE_SIZE, remaining)} more ({remaining} remaining)
         </button>
@@ -241,13 +241,13 @@ export function MetaRow({ items }: { items: { label: string; value: ReactNode }[
 }
 
 export const btnPrimary =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-150 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-5 py-3 text-sm font-bold text-white shadow-md shadow-emerald-600/25 transition-all duration-150 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
 
 export const btnOutline =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border/80 bg-elevated/70 px-4 py-2.5 text-sm font-medium text-foreground transition-all duration-150 hover:bg-accent hover:border-border active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border/80 bg-elevated/70 px-4 py-3 text-sm font-semibold text-foreground transition-all duration-150 hover:bg-accent hover:border-border active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
 
 export const btnDanger =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm font-semibold text-destructive transition-all duration-150 hover:bg-destructive/20 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive transition-all duration-150 hover:bg-destructive/20 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none";
 
 export const btnIcon =
-  "inline-flex size-11 items-center justify-center rounded-xl border border-border/70 bg-elevated/70 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-[0.96] disabled:opacity-50 cursor-pointer select-none";
+  "inline-flex size-11 items-center justify-center rounded-2xl border border-border/70 bg-elevated/70 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-[0.94] disabled:opacity-50 cursor-pointer select-none";

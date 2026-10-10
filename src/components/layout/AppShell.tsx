@@ -14,6 +14,10 @@ import {
   X,
   ChevronRight,
   ShieldCheck,
+  LayoutDashboard,
+  Boxes,
+  Tag,
+  ShoppingCart,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -313,20 +317,45 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile Top Header (Optimized for Android APK & Mobile Web) */}
-      <header className="pad-safe-top sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-xl lg:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
+      {/* Mobile Top Header (Modern Glassmorphic Header) */}
+      <header className="pad-safe-top sticky top-0 z-20 border-b border-border/50 bg-background/80 backdrop-blur-2xl lg:hidden">
+        <div className="flex items-center justify-between px-4 py-2.5">
           <Brand />
 
-          {/* Right Mobile Quick Status, Theme & Profile */}
+          {/* Right Mobile Status, Sync & Theme */}
           <div className="flex items-center gap-2">
+            {/* Live Sheets Sync Pill */}
+            {settings.linked_file_name ? (
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={syncing}
+                title="Google Sheets status (tap to sync)"
+                aria-label="Sync with Google Sheets"
+                className="flex items-center gap-1.5 rounded-full border border-border/70 bg-elevated/80 px-2.5 py-1 text-xs font-medium text-foreground active:scale-95 transition-all shadow-xs"
+              >
+                <span
+                  className={cn(
+                    "size-2 rounded-full shrink-0",
+                    sheetRole === "read"
+                      ? "bg-sky-400"
+                      : "bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50",
+                  )}
+                />
+                <RefreshCw
+                  className={cn("size-3 text-muted-foreground", syncing && "animate-spin text-primary")}
+                />
+                <span className="hidden xs:inline text-[11px] font-semibold">{syncing ? "Syncing" : "Synced"}</span>
+              </button>
+            ) : null}
+
             {/* Quick Theme Switcher */}
             <button
               type="button"
               onClick={cycleTheme}
-              title={`Current theme: ${theme}. Tap to switch.`}
-              aria-label="Toggle light / dark theme"
-              className="flex size-9 items-center justify-center rounded-xl border border-border/80 bg-elevated/90 text-foreground hover:text-primary active:scale-90 transition-all shadow-xs"
+              title={`Theme: ${theme}`}
+              aria-label="Toggle theme"
+              className="flex size-8.5 items-center justify-center rounded-xl border border-border/70 bg-elevated/80 text-foreground hover:text-primary active:scale-90 transition-all shadow-xs"
             >
               {isLight ? (
                 <Sun className="size-4 text-amber-500" aria-hidden />
@@ -335,29 +364,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </button>
 
-            {/* Quick sync button / pill */}
-            {settings.linked_file_name && (
-              <button
-                type="button"
-                onClick={handleManualSync}
-                disabled={syncing}
-                aria-label="Sync with Google Sheets"
-                className="flex items-center gap-1.5 rounded-full border border-border/80 bg-elevated/80 px-2.5 py-1 text-xs font-medium text-foreground active:scale-95 transition-all"
-              >
-                <span className={cn(
-                  "size-1.5 rounded-full shrink-0",
-                  sheetRole === "read" ? "bg-sky-400" : "bg-emerald-400 animate-pulse"
-                )} />
-                <RefreshCw className={cn("size-3", syncing && "animate-spin text-primary")} />
-                <span className="hidden xs:inline text-[11px]">{syncing ? "Syncing..." : "Sync"}</span>
-              </button>
-            )}
-
             {/* Profile Avatar Shortcut */}
             <Link
               to="/settings"
               aria-label="Open settings"
-              className="flex size-9 items-center justify-center rounded-xl border border-border/80 bg-elevated/90 text-primary font-bold text-xs shadow-xs active:scale-90 transition-transform"
+              className="flex size-8.5 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary font-bold text-xs shadow-xs active:scale-90 transition-transform"
             >
               {(settings.user_name || "S").slice(0, 2).toUpperCase()}
             </Link>
@@ -367,51 +378,91 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 lg:pl-68">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-12">
+        <div className="mx-auto w-full max-w-6xl px-3.5 pb-32 pt-4 sm:px-6 sm:pt-7 lg:pb-12">
           {children}
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation (Ergonomic 5-tab dock for APK & Mobile Web) */}
+      {/* Mobile Floating Ergonomic Dock (Modern Center-POS Design) */}
       <nav
         aria-label="Mobile Navigation"
-        className="pad-safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-card/90 backdrop-blur-xl lg:hidden shadow-lg select-none"
+        className="fixed inset-x-3 bottom-2.5 z-30 lg:hidden select-none"
       >
-        <div className="grid grid-cols-5 h-16">
-          {primaryNav.map((item) => {
-            const active = activeCls(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-all duration-150 active:scale-90",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {active && (
-                  <span className="absolute top-1 size-1 rounded-full bg-primary" />
-                )}
-                <item.icon className={cn("size-5 transition-transform", active && "scale-110")} aria-hidden />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        <div className="flex h-16 items-center justify-around rounded-2xl border border-border/80 bg-card/92 px-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 dark:ring-white/5">
+          {/* Tab 1: Home */}
+          <Link
+            to="/"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              pathname === "/"
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <LayoutDashboard className={cn("size-5", pathname === "/" && "scale-105")} />
+            <span>Home</span>
+          </Link>
 
-          {/* 5th Tab: "More" Menu Button */}
+          {/* Tab 2: Stock */}
+          <Link
+            to="/stock"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              pathname.startsWith("/stock")
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Boxes className={cn("size-5", pathname.startsWith("/stock") && "scale-105")} />
+            <span>Stock</span>
+          </Link>
+
+          {/* Tab 3: Center Elevated POS Action Button */}
+          <Link
+            to="/sell"
+            className="group relative -mt-5 flex flex-col items-center justify-center transition-transform active:scale-90"
+            aria-label="Open POS Register"
+          >
+            <div className={cn(
+              "flex size-12 items-center justify-center rounded-2xl shadow-lg ring-4 ring-background transition-transform group-hover:scale-105",
+              pathname.startsWith("/sell")
+                ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/40"
+                : "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-600/30",
+            )}>
+              <Tag className="size-5.5" />
+            </div>
+            <span className={cn("mt-1 text-[10px] font-bold tracking-tight", pathname.startsWith("/sell") ? "text-primary" : "text-muted-foreground")}>
+              POS
+            </span>
+          </Link>
+
+          {/* Tab 4: Buy */}
+          <Link
+            to="/buy"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              pathname.startsWith("/buy")
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <ShoppingCart className={cn("size-5", pathname.startsWith("/buy") && "scale-105")} />
+            <span>Buy</span>
+          </Link>
+
+          {/* Tab 5: More Menu Button */}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            aria-label="More navigation and tools"
+            aria-label="More options"
             className={cn(
-              "relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-all duration-150 active:scale-90",
-              isMoreRoute ? "text-primary" : "text-muted-foreground hover:text-foreground",
+              "flex flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold transition-all active:scale-90",
+              isMoreRoute
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {isMoreRoute && (
-              <span className="absolute top-1 size-1 rounded-full bg-primary" />
-            )}
-            <MoreHorizontal className={cn("size-5 transition-transform", isMoreRoute && "scale-110")} aria-hidden />
+            <MoreHorizontal className={cn("size-5", isMoreRoute && "scale-105")} />
             <span>More</span>
           </button>
         </div>
