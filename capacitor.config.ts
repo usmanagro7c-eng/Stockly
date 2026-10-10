@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.stockly.app',
   appName: 'Stockly',
-  webDir: 'dist-capacitor',
+  webDir: 'dist',
   server: {
     androidScheme: 'https',
   },
