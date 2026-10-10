@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   AlertTriangle,
   Download,
-  FilePlus,
   HardDriveDownload,
   Key,
   Lock,
@@ -24,18 +23,20 @@ import {
   Moon,
   Check,
   FileSpreadsheet as FileSpreadsheetIcon,
+  ExternalLink,
+  Sliders,
+  Cloud,
+  CheckCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
-  EmptyState,
   Field,
   PageHeader,
   Panel,
   SectionTitle,
   btnDanger,
-  btnIcon,
   btnOutline,
   btnPrimary,
   inputClass,
@@ -65,7 +66,6 @@ import type { BackupFile } from "@/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
@@ -77,6 +77,8 @@ export const Route = createFileRoute("/settings")({
   }),
   component: SettingsPage,
 });
+
+type SettingsTab = "general" | "sheets" | "reports" | "security";
 
 function SettingsPage() {
   const settings = useStockStore((s) => s.settings);
@@ -91,7 +93,7 @@ function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const currency = useCurrency();
 
-  /* --- Refs / state --- */
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* --- User Profile --- */
@@ -118,10 +120,10 @@ function SettingsPage() {
       low_stock_threshold: profile.low_stock_threshold,
     });
     setProfileError("");
-    toast.success("Settings saved!");
+    toast.success("Settings saved successfully!");
   };
 
-  /* --- PIN --- */
+  /* --- PIN Security --- */
   const [pinMode, setPinMode] = useState<"set" | "change" | "disable">("set");
   const [pinFields, setPinFields] = useState({
     current: "",
@@ -130,9 +132,60 @@ function SettingsPage() {
   });
   const [pinError, setPinError] = useState("");
   const pinHash = settings.pin_code_hash;
-
-  const canSetPin = !pinHash;
   const hasPin = Boolean(pinHash);
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError("");
+
+    if (pinMode === "set") {
+      if (!isValidPin(pinFields.new)) {
+        setPinError("PIN must be 4–6 numeric digits");
+        return;
+      }
+      if (pinFields.new !== pinFields.confirm) {
+        setPinError("PINs do not match");
+        return;
+      }
+      const hashed = await hashPin(pinFields.new);
+      await updateSettings({ pin_code_hash: hashed });
+      setPinFields({ current: "", new: "", confirm: "" });
+      setPinMode("change");
+      toast.success("Security PIN enabled!");
+      return;
+    }
+
+    if (pinMode === "change") {
+      if (!(await verifyPin(pinFields.current, pinHash))) {
+        setPinError("Current PIN is incorrect");
+        return;
+      }
+      if (!isValidPin(pinFields.new)) {
+        setPinError("New PIN must be 4–6 numeric digits");
+        return;
+      }
+      if (pinFields.new !== pinFields.confirm) {
+        setPinError("PINs do not match");
+        return;
+      }
+      const hashed = await hashPin(pinFields.new);
+      await updateSettings({ pin_code_hash: hashed });
+      setPinFields({ current: "", new: "", confirm: "" });
+      toast.success("Security PIN updated!");
+      return;
+    }
+
+    if (pinMode === "disable") {
+      if (!(await verifyPin(pinFields.current, pinHash))) {
+        setPinError("Current PIN is incorrect");
+        return;
+      }
+      await updateSettings({ pin_code_hash: "" });
+      setPinFields({ current: "", new: "", confirm: "" });
+      setPinMode("set");
+      toast.success("Security PIN disabled!");
+    }
+  };
 
   /* --- Google Sheets Sync --- */
   const [sheetUrl, setSheetUrl] = useState(settings.linked_file_name || "");
@@ -140,25 +193,12 @@ function SettingsPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(() => getGoogleEmail());
   const [sheetTitle, setSheetTitle] = useState<string | null>(() => getGoogleSheetTitle());
-  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const [refreshingPerms, setRefreshingPerms] = useState(false);
   const connectGoogleSheet = useStockStore((s) => s.connectGoogleSheet);
   const syncToGoogleSheets = useStockStore((s) => s.syncToGoogleSheets);
   const syncFromGoogleSheets = useStockStore((s) => s.syncFromGoogleSheets);
   const refreshSheetPermission = useStockStore((s) => s.refreshSheetPermission);
   const sheetRole = useStockStore((s) => s.sheetRole);
-  const [refreshingPerms, setRefreshingPerms] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const off = () => setOnline(false);
-    const on = () => setOnline(true);
-    window.addEventListener("offline", off);
-    window.addEventListener("online", on);
-    return () => {
-      window.removeEventListener("offline", off);
-      window.removeEventListener("online", on);
-    };
-  }, []);
 
   const handleSheetUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSheetUrl(e.target.value);
@@ -295,61 +335,7 @@ function SettingsPage() {
   const canConnect = Boolean(sheetUrl);
   const isReadOnly = sheetRole === "read";
 
-
-  const handlePinSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPinError("");
-
-    if (pinMode === "set") {
-      if (!isValidPin(pinFields.new)) {
-        setPinError("PIN must be 4–6 digits");
-        return;
-      }
-      if (pinFields.new !== pinFields.confirm) {
-        setPinError("PINs do not match");
-        return;
-      }
-      const hashed = await hashPin(pinFields.new);
-      await updateSettings({ pin_code_hash: hashed });
-      setPinFields({ current: "", new: "", confirm: "" });
-      setPinMode("change");
-      toast.success("PIN set!");
-      return;
-    }
-
-    if (pinMode === "change") {
-      if (!(await verifyPin(pinFields.current, pinHash))) {
-        setPinError("Current PIN is incorrect");
-        return;
-      }
-      if (!isValidPin(pinFields.new)) {
-        setPinError("New PIN must be 4–6 digits");
-        return;
-      }
-      if (pinFields.new !== pinFields.confirm) {
-        setPinError("PINs do not match");
-        return;
-      }
-      const hashed = await hashPin(pinFields.new);
-      await updateSettings({ pin_code_hash: hashed });
-      setPinFields({ current: "", new: "", confirm: "" });
-      toast.success("PIN updated!");
-      return;
-    }
-
-    if (pinMode === "disable") {
-      if (!(await verifyPin(pinFields.current, pinHash))) {
-        setPinError("Current PIN is incorrect");
-        return;
-      }
-      await updateSettings({ pin_code_hash: "" });
-      setPinFields({ current: "", new: "", confirm: "" });
-      setPinMode("set");
-      toast.success("PIN disabled!");
-    }
-  };
-
-  /* --- Export / Import / Backup --- */
+  /* --- Backup & Restore --- */
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [pendingImport, setPendingImport] = useState<{
@@ -377,7 +363,7 @@ function SettingsPage() {
     const filename = `stockly-backup-${format(new Date(), "yyyy-MM-dd")}.json`;
     downloadJSON(backup, filename);
     await logExport();
-    toast.success("Backup created!");
+    toast.success("JSON Backup downloaded!");
   };
 
   const handleFileSelect = async (file: File) => {
@@ -404,7 +390,6 @@ function SettingsPage() {
       },
       mode,
     );
-    // Apply imported settings (but preserve device_id & PIN)
     const importedSettings = data.settings as Record<string, unknown>;
     if (importedSettings) {
       await updateSettings({
@@ -418,538 +403,885 @@ function SettingsPage() {
     }
     setShowImportConfirm(false);
     setPendingImport(null);
-    fileInputRef.current!.value = "";
-    toast.success(mode === "replace" ? "Data replaced!" : "Data merged!");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    toast.success(mode === "replace" ? "All data replaced successfully!" : "Data merged successfully!");
   };
 
-  const handleRestore = () => {
-    fileInputRef.current?.click();
-  };
+  const userInitial = (profile.user_name.trim()[0] || "U").toUpperCase();
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Settings" subtitle="Shop profile, theme & sync." />
-
-      {/* User Profile */}
-      <Panel>
-        <SectionTitle
-          left={<SettingsIcon className="size-4" aria-hidden />}
-          right={<span className="text-xs text-muted-foreground">Profile</span>}
-        >
-          User Profile
-        </SectionTitle>
-        <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Your name" htmlFor="set-name" required error={profileError}>
-            <input
-              id="set-name"
-              className={inputClass}
-              value={profile.user_name}
-              onChange={(e) => {
-                setProfile((p) => ({ ...p, user_name: e.target.value }));
-                setProfileError("");
-              }}
-              placeholder="e.g. Usman"
-            />
-          </Field>
-          <Field label="Currency symbol" htmlFor="set-currency" required>
-            <input
-              id="set-currency"
-              className={inputClass}
-              value={profile.currency_symbol}
-              onChange={(e) => setProfile((p) => ({ ...p, currency_symbol: e.target.value }))}
-              placeholder="Rs."
-            />
-          </Field>
-          <Field label="Low stock limit" htmlFor="set-threshold" required>
-            <input
-              id="set-threshold"
-              type="number"
-              min="0"
-              step="1"
-              className={inputClass}
-              value={profile.low_stock_threshold}
-              onChange={(e) => {
-                setProfile((p) => ({ ...p, low_stock_threshold: parseInt(e.target.value) || 0 }));
-                setProfileError("");
-              }}
-            />
-          </Field>
-          <Field label="Device ID" htmlFor="set-device">
-            <input id="set-device" className={inputClass} value={settings.device_id} readOnly />
-          </Field>
-          <div className="sm:col-span-2">
-            <button type="submit" className={btnPrimary}>
-              <Save className="size-4" aria-hidden /> Save profile
-            </button>
+    <div className="space-y-5 pb-8">
+      {/* Top Header with Profile Card */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-elevated/90 via-surface to-elevated/40 p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-xl font-bold text-slate-950 shadow-md ring-2 ring-emerald-500/20">
+              {userInitial}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  {profile.user_name || "Shop Settings"}
+                </h1>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary border border-primary/20">
+                  {currency}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                Manage appearance, Google Sheets cloud link, reports and shop security.
+              </p>
+            </div>
           </div>
-        </form>
-      </Panel>
 
-      {/* ☀ Light Mode / Dark Mode / OLED Switcher */}
-      <Panel>
-        <SectionTitle
-          left={<Sun className="size-4" aria-hidden />}
-          right={
-            <span className="text-xs font-semibold capitalize text-primary">
-              {theme} Mode Active
+          {/* Quick status pill badges */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {isConnected ? (
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 font-medium text-emerald-400">
+                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                Sheets Linked
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-elevated/60 px-3 py-1.5 font-medium text-muted-foreground">
+                <Cloud className="size-3.5" />
+                Sheets Offline
+              </span>
+            )}
+
+            <span className={cn(
+              "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-medium",
+              hasPin
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : "border-border bg-elevated/60 text-muted-foreground"
+            )}>
+              <Shield className="size-3.5" />
+              {hasPin ? "PIN Active" : "No PIN"}
             </span>
-          }
-        >
-          Appearance & Theme
-        </SectionTitle>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {/* Light Mode */}
-          <button
-            type="button"
-            onClick={() => setTheme("light")}
-            className={cn(
-              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
-              theme === "light"
-                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
-                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
-            )}
-          >
-            <div className="flex w-full items-center justify-between">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
-                <Sun className="size-5" />
-              </div>
-              {theme === "light" && (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Check className="size-3" />
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground">Clean Light Mode</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Crisp daylight white — high readability in shop sunlight.
-              </p>
-            </div>
-          </button>
-
-          {/* Dark Mode */}
-          <button
-            type="button"
-            onClick={() => setTheme("dark")}
-            className={cn(
-              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
-              theme === "dark"
-                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
-                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
-            )}
-          >
-            <div className="flex w-full items-center justify-between">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <Moon className="size-5" />
-              </div>
-              {theme === "dark" && (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Check className="size-3" />
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground">Business Dark</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Default modern slate theme with balanced contrast.
-              </p>
-            </div>
-          </button>
-
-          {/* OLED Black Mode */}
-          <button
-            type="button"
-            onClick={() => setTheme("oled")}
-            className={cn(
-              "group relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",
-              theme === "oled"
-                ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
-                : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated",
-            )}
-          >
-            <div className="flex w-full items-center justify-between">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-800 text-zinc-100 border border-zinc-700">
-                <div className="size-3.5 rounded-full bg-black border border-zinc-500" />
-              </div>
-              {theme === "oled" && (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Check className="size-3" />
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground">OLED Black</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                True #000000 black — saves battery on AMOLED screens.
-              </p>
-            </div>
-          </button>
+          </div>
         </div>
-      </Panel>
+      </div>
 
-      {/* PIN Security */}
-      <Panel>
-        <SectionTitle
-          left={<Key className="size-4" aria-hidden />}
-          right={
-            <span
-              className={
-                hasPin
-                  ? "inline-flex items-center gap-1 text-xs font-medium text-success"
-                  : "inline-flex items-center gap-1 text-xs font-medium text-warning"
+      {/* Segmented Pill Tab Switcher */}
+      <div className="flex items-center gap-1.5 overflow-x-auto rounded-2xl border border-border/80 bg-elevated/40 p-1.5 text-xs font-medium no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab("general")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            activeTab === "general"
+              ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
+          )}
+        >
+          <Sliders className="size-4" />
+          <span>General</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("sheets")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            activeTab === "sheets"
+              ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
+          )}
+        >
+          <FileSpreadsheet className="size-4" />
+          <span>Google Sheets</span>
+          {isConnected && <span className="size-1.5 rounded-full bg-emerald-400" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("reports")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            activeTab === "reports"
+              ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
+          )}
+        >
+          <FileSpreadsheetIcon className="size-4" />
+          <span>Reports & Data</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("security")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            activeTab === "security"
+              ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
+          )}
+        >
+          <Lock className="size-4" />
+          <span>Security</span>
+        </button>
+      </div>
+
+      {/* ================= TAB 1: GENERAL (PROFILE & APPEARANCE) ================= */}
+      {activeTab === "general" && (
+        <div className="space-y-5 animate-in fade-in-50 duration-200">
+          {/* Shop Profile Panel */}
+          <Panel>
+            <SectionTitle
+              left={<User className="size-4 text-primary" aria-hidden />}
+              right={<span className="text-xs text-muted-foreground">Store Details</span>}
+            >
+              Shop Profile
+            </SectionTitle>
+
+            <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Owner / Shop Name" htmlFor="set-name" required error={profileError}>
+                <input
+                  id="set-name"
+                  className={inputClass}
+                  value={profile.user_name}
+                  onChange={(e) => {
+                    setProfile((p) => ({ ...p, user_name: e.target.value }));
+                    setProfileError("");
+                  }}
+                  placeholder="e.g. Usman Agro"
+                />
+              </Field>
+
+              <Field label="Currency Symbol" htmlFor="set-currency" required>
+                <input
+                  id="set-currency"
+                  className={inputClass}
+                  value={profile.currency_symbol}
+                  onChange={(e) => setProfile((p) => ({ ...p, currency_symbol: e.target.value }))}
+                  placeholder="Rs. or $"
+                />
+              </Field>
+
+              <Field label="Low Stock Warning Threshold (units)" htmlFor="set-threshold" required>
+                <input
+                  id="set-threshold"
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={inputClass}
+                  value={profile.low_stock_threshold}
+                  onChange={(e) => {
+                    setProfile((p) => ({ ...p, low_stock_threshold: parseInt(e.target.value) || 0 }));
+                    setProfileError("");
+                  }}
+                />
+              </Field>
+
+              <Field label="Device ID" htmlFor="set-device">
+                <input
+                  id="set-device"
+                  className={cn(inputClass, "opacity-75 cursor-not-allowed bg-elevated/60 font-mono text-xs")}
+                  value={settings.device_id}
+                  readOnly
+                />
+              </Field>
+
+              <div className="sm:col-span-2 pt-2">
+                <button type="submit" className={cn(btnPrimary, "w-full sm:w-auto")}>
+                  <Save className="size-4" aria-hidden /> Save Changes
+                </button>
+              </div>
+            </form>
+          </Panel>
+
+          {/* Theme & Appearance Panel */}
+          <Panel>
+            <SectionTitle
+              left={<Sun className="size-4 text-amber-400" aria-hidden />}
+              right={
+                <span className="text-xs font-semibold capitalize text-primary">
+                  {theme} Active
+                </span>
               }
             >
-              <Shield className="size-3" aria-hidden /> {hasPin ? "Enabled" : "Disabled"}
-            </span>
-          }
-        >
-          PIN Security
-        </SectionTitle>
+              Appearance & Theme
+            </SectionTitle>
 
-        <form onSubmit={handlePinSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
-          {!hasPin && (
-            <>
-              <Field label="New PIN" htmlFor="pin-new" required error={pinError}>
-                <input
-                  id="pin-new"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={inputClass}
-                  value={pinFields.new}
-                  onChange={(e) => {
-                    setPinFields((f) => ({ ...f, new: e.target.value }));
-                    setPinError("");
-                  }}
-                  placeholder="4–6 digits"
-                />
-              </Field>
-              <Field label="Confirm PIN" htmlFor="pin-confirm" required error={pinError}>
-                <input
-                  id="pin-confirm"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={inputClass}
-                  value={pinFields.confirm}
-                  onChange={(e) => {
-                    setPinFields((f) => ({ ...f, confirm: e.target.value }));
-                    setPinError("");
-                  }}
-                  placeholder="Confirm"
-                />
-              </Field>
-            </>
-          )}
-
-          {hasPin && pinMode === "change" && (
-            <>
-              <Field label="Current PIN" htmlFor="pin-current" required error={pinError}>
-                <input
-                  id="pin-current"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={inputClass}
-                  value={pinFields.current}
-                  onChange={(e) => {
-                    setPinFields((f) => ({ ...f, current: e.target.value }));
-                    setPinError("");
-                  }}
-                  placeholder="Current PIN"
-                />
-              </Field>
-              <Field label="New PIN" htmlFor="pin-new" required error={pinError}>
-                <input
-                  id="pin-new"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={inputClass}
-                  value={pinFields.new}
-                  onChange={(e) => {
-                    setPinFields((f) => ({ ...f, new: e.target.value }));
-                    setPinError("");
-                  }}
-                  placeholder="4–6 digits"
-                />
-              </Field>
-              <Field
-                label="Confirm new PIN"
-                htmlFor="pin-confirm"
-                required
-                error={pinError}
-                sm:col-span-2
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {/* Light Mode */}
+              <button
+                type="button"
+                onClick={() => setTheme("light")}
+                className={cn(
+                  "group relative flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-all tap-active",
+                  theme === "light"
+                    ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                    : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated"
+                )}
               >
-                <input
-                  id="pin-confirm"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  className={inputClass}
-                  value={pinFields.confirm}
-                  onChange={(e) => {
-                    setPinFields((f) => ({ ...f, confirm: e.target.value }));
-                    setPinError("");
-                  }}
-                  placeholder="Confirm"
-                />
-              </Field>
-            </>
-          )}
-
-          {hasPin && pinMode === "disable" && (
-            <Field
-              label="Current PIN"
-              htmlFor="pin-current"
-              required
-              error={pinError}
-              sm:col-span-2
-            >
-              <input
-                id="pin-current"
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                className={inputClass}
-                value={pinFields.current}
-                onChange={(e) => {
-                  setPinFields((f) => ({ ...f, current: e.target.value }));
-                  setPinError("");
-                }}
-                placeholder="Current PIN to disable"
-              />
-            </Field>
-          )}
-
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            {!hasPin ? (
-              <button type="submit" className={btnPrimary}>
-                <Lock className="size-4" aria-hidden /> Set PIN
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                    <Sun className="size-5" />
+                  </div>
+                  {theme === "light" && (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-3" />
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground">Clean Light</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                    Daylight crisp white mode — high visibility in bright shop sunlight.
+                  </p>
+                </div>
               </button>
-            ) : pinMode === "change" ? (
-              <>
-                <button type="submit" className={btnPrimary}>
-                  <RotateCcw className="size-4" aria-hidden /> Change PIN
-                </button>
-                <button
-                  type="button"
-                  className={btnDanger}
-                  onClick={() => {
-                    setPinMode("disable");
-                    setPinFields({ current: "", new: "", confirm: "" });
-                    setPinError("");
-                  }}
+
+              {/* Dark Mode */}
+              <button
+                type="button"
+                onClick={() => setTheme("dark")}
+                className={cn(
+                  "group relative flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-all tap-active",
+                  theme === "dark"
+                    ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                    : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated"
+                )}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <Moon className="size-5" />
+                  </div>
+                  {theme === "dark" && (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-3" />
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground">Business Dark</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                    Modern sleek slate theme with balanced soft dark contrast.
+                  </p>
+                </div>
+              </button>
+
+              {/* OLED Black */}
+              <button
+                type="button"
+                onClick={() => setTheme("oled")}
+                className={cn(
+                  "group relative flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-all tap-active",
+                  theme === "oled"
+                    ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/40"
+                    : "border-border/80 bg-elevated/40 hover:border-border hover:bg-elevated"
+                )}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-100">
+                    <div className="size-3.5 rounded-full bg-black border border-zinc-600" />
+                  </div>
+                  {theme === "oled" && (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-3" />
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground">OLED Black</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                    True #000000 pure black — saves battery on AMOLED mobile displays.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {/* ================= TAB 2: GOOGLE SHEETS CLOUD SYNC ================= */}
+      {activeTab === "sheets" && (
+        <div className="space-y-5 animate-in fade-in-50 duration-200">
+          <Panel>
+            <SectionTitle
+              left={<FileSpreadsheet className="size-4 text-emerald-400" aria-hidden />}
+              right={
+                isConnected ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                    <CheckCircle className="size-3.5" /> Connected
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Cloud Sync</span>
+                )
+              }
+            >
+              Google Sheets Sync
+            </SectionTitle>
+
+            <div className="mt-4 space-y-4">
+              {/* Account Card */}
+              <div className="rounded-2xl border border-border/80 bg-elevated/40 p-4 transition-all">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                        1
+                      </span>
+                      <p className="text-sm font-semibold text-foreground">Google Account</p>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {connectedEmail ? (
+                        <span>
+                          Connected: <strong className="text-foreground">{connectedEmail}</strong>
+                          {!isTokenValid() && (
+                            <span className="ml-2 inline-flex items-center text-amber-500 font-semibold">
+                              · Token Expired
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        "Sign in to synchronize your business ledger automatically."
+                      )}
+                    </p>
+                  </div>
+
+                  {connectedEmail ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isTokenValid() && (
+                        <button
+                          type="button"
+                          onClick={handleSignInGoogle}
+                          disabled={signingIn}
+                          className={cn(btnPrimary, "text-xs py-2 h-auto")}
+                        >
+                          <RotateCcw className="size-3.5" />
+                          {signingIn ? "Reconnecting..." : "Reconnect"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleSignInGoogle}
+                        disabled={signingIn}
+                        className={cn(btnOutline, "text-xs py-2 h-auto")}
+                      >
+                        Switch
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOutGoogle}
+                        className={cn(btnDanger, "text-xs py-2 h-auto")}
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSignInGoogle}
+                      disabled={signingIn}
+                      className={cn(btnPrimary, "text-xs py-2.5 h-auto")}
+                    >
+                      <Mail className="size-4" />
+                      {signingIn ? "Signing in..." : "Sign in with Google"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Link Spreadsheet Card */}
+              <div className="rounded-2xl border border-border/80 bg-elevated/40 p-4 transition-all">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                    2
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">Spreadsheet Link</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="sheet-url" className="text-xs font-medium text-muted-foreground block">
+                    Google Sheet Link or Sheet ID
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      id="sheet-url"
+                      className={cn(inputClass, "flex-1")}
+                      value={sheetUrl}
+                      onChange={handleSheetUrlChange}
+                      placeholder="Paste sheet browser link or sheet ID..."
+                    />
+                    {isConnected ? (
+                      <button
+                        type="button"
+                        className={cn(btnDanger, "whitespace-nowrap")}
+                        onClick={handleDisconnectSheet}
+                        disabled={syncing}
+                      >
+                        <X className="size-4" /> Disconnect
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={cn(btnPrimary, "whitespace-nowrap")}
+                        onClick={handleConnectSheet}
+                        disabled={!canConnect || syncing}
+                      >
+                        <FileSpreadsheet className="size-4" />
+                        {syncing ? "Connecting..." : "Link Sheet"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connected Details Dashboard */}
+                {isConnected && (
+                  <div className="mt-4 rounded-xl border border-border/80 bg-surface/80 p-4 space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Sheet Title</p>
+                        <p className="font-semibold text-sm text-foreground truncate mt-0.5">
+                          {sheetTitle || "Google Sheet"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Permission</p>
+                          <button
+                            type="button"
+                            onClick={handleRefreshPermissions}
+                            disabled={refreshingPerms || syncing}
+                            className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <RefreshCw className={cn("size-3", refreshingPerms && "animate-spin")} />
+                            Verify
+                          </button>
+                        </div>
+                        <div className="mt-1">
+                          {sheetRole === "edit" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              <Edit3 className="size-3" /> Editor · Full Access
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                              <Eye className="size-3" /> Viewer · Read-Only
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Connected Account</p>
+                        <p className="font-medium text-xs text-foreground truncate mt-0.5">
+                          {connectedEmail || "Google Account"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Last Sync</p>
+                        <p className="font-medium text-xs text-foreground mt-0.5">
+                          {settings.last_sync_time
+                            ? format(new Date(settings.last_sync_time), "dd MMM yyyy, HH:mm")
+                            : "Just now"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-border/80 flex flex-wrap gap-2.5">
+                      <button
+                        type="button"
+                        className={cn(btnOutline, "flex-1 sm:flex-initial")}
+                        onClick={handleSyncFromSheets}
+                        disabled={syncing}
+                      >
+                        <RotateCcw className={cn("size-4", syncing && "animate-spin")} />
+                        {syncing ? "Syncing..." : "Pull from Sheets"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className={cn(btnPrimary, "flex-1 sm:flex-initial")}
+                        onClick={handleSyncToSheets}
+                        disabled={syncing || isReadOnly}
+                      >
+                        <RotateCcw className={cn("size-4", syncing && "animate-spin")} />
+                        {isReadOnly ? "Viewer Only (No Write)" : syncing ? "Pushing..." : "Push to Sheets"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {/* ================= TAB 3: REPORTS & DATA ================= */}
+      {activeTab === "reports" && (
+        <div className="space-y-5 animate-in fade-in-50 duration-200">
+          {/* Excel / CSV Exports Panel */}
+          <Panel>
+            <SectionTitle
+              left={<FileSpreadsheetIcon className="size-4 text-emerald-400" aria-hidden />}
+              right={
+                <span className="text-xs font-semibold text-emerald-400">
+                  1-Click Downloads
+                </span>
+              }
+            >
+              Excel (XLSX) & CSV Exports
+            </SectionTitle>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {/* Master Workbook */}
+              <button
+                type="button"
+                className="flex items-center gap-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left transition-all hover:bg-emerald-500/15 group tap-active"
+                onClick={() => {
+                  exportCompleteBusinessWorkbook(
+                    { inventory, sales, purchases, expenses, investments },
+                    currency,
+                  );
+                  toast.success("Master Business Excel Workbook downloaded!");
+                }}
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+                  <FileSpreadsheetIcon className="size-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground group-hover:text-emerald-400 transition-colors">
+                    Master Business Workbook (.xlsx)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Complete sheet: Inventory, Sales, Purchases, Expenses & Investments
+                  </p>
+                </div>
+              </button>
+
+              {/* Stock Inventory */}
+              <button
+                type="button"
+                className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-elevated/40 p-4 text-left transition-all hover:bg-elevated/80 group tap-active"
+                onClick={() => {
+                  exportStockInventoryExcel(inventory, currency, settings.low_stock_threshold);
+                  toast.success("Stock Inventory Excel report downloaded!");
+                }}
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+                  <Download className="size-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                    Stock Inventory Report (.xlsx)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Item quantities, average purchase prices & stock valuation
+                  </p>
+                </div>
+              </button>
+
+              {/* Sales History */}
+              <button
+                type="button"
+                className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-elevated/40 p-4 text-left transition-all hover:bg-elevated/80 group tap-active"
+                onClick={() => {
+                  exportSalesReportExcel(sales, currency);
+                  toast.success("Sales History Excel report downloaded!");
+                }}
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400">
+                  <Download className="size-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                    Sales & Profit History (.xlsx)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Customer sales log, revenues, margins & items sold
+                  </p>
+                </div>
+              </button>
+
+              {/* Expenses Sheet */}
+              <button
+                type="button"
+                className="flex items-center gap-3.5 rounded-2xl border border-border/80 bg-elevated/40 p-4 text-left transition-all hover:bg-elevated/80 group tap-active"
+                onClick={() => {
+                  exportExpensesReportExcel(expenses, currency);
+                  toast.success("Expenses Excel sheet downloaded!");
+                }}
+              >
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
+                  <Download className="size-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                    Shop Expenses Sheet (.xlsx)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Categorized bills, rent, maintenance & monthly totals
+                  </p>
+                </div>
+              </button>
+            </div>
+          </Panel>
+
+          {/* JSON Backup & Migration Panel */}
+          <Panel>
+            <SectionTitle
+              left={<HardDriveDownload className="size-4 text-primary" aria-hidden />}
+              right={<span className="text-xs text-muted-foreground">JSON Archive</span>}
+            >
+              Data Backup & Restore
+            </SectionTitle>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                className={cn(btnPrimary, "justify-center")}
+                onClick={handleExport}
+              >
+                <HardDriveDownload className="size-4" /> Download JSON Backup
+              </button>
+
+              <div className="flex items-center">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".json,application/json"
+                  className="hidden"
+                  id="import-file-unified"
+                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                />
+                <label
+                  htmlFor="import-file-unified"
+                  className={cn(btnOutline, "w-full justify-center cursor-pointer")}
                 >
-                  <Trash2 className="size-4" aria-hidden /> Disable PIN
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="submit" className={btnDanger}>
-                  <X className="size-4" aria-hidden /> Confirm disable
-                </button>
-                <button
-                  type="button"
-                  className={btnOutline}
-                  onClick={() => {
-                    setPinMode("change");
-                    setPinFields({ current: "", new: "", confirm: "" });
-                    setPinError("");
-                  }}
+                  <Upload className="size-4" /> Restore from JSON File
+                </label>
+              </div>
+            </div>
+
+            {/* Import Mode Settings */}
+            <div className="mt-4 rounded-2xl border border-border/80 bg-elevated/40 p-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-foreground">Import Strategy:</span>
+                  <div className="inline-flex rounded-xl bg-background p-1 border border-border/80">
+                    <button
+                      type="button"
+                      onClick={() => setImportMode("merge")}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-medium transition-all",
+                        importMode === "merge"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Merge (Safe)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImportMode("replace")}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-medium transition-all",
+                        importMode === "replace"
+                          ? "bg-destructive text-destructive-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Replace All
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {importMode === "merge"
+                    ? "Merges new records into existing data without deletion."
+                    : "Overwrites entire database with the backup file."}
+                </p>
+              </div>
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {/* ================= TAB 4: SECURITY ================= */}
+      {activeTab === "security" && (
+        <div className="space-y-5 animate-in fade-in-50 duration-200">
+          <Panel>
+            <SectionTitle
+              left={<Key className="size-4 text-primary" aria-hidden />}
+              right={
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border",
+                    hasPin
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                  )}
                 >
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
-        </form>
-      </Panel>
+                  <Shield className="size-3" /> {hasPin ? "PIN Enabled" : "PIN Disabled"}
+                </span>
+              }
+            >
+              Shop App PIN Lock
+            </SectionTitle>
 
-      {/* Data Management */}
-      <Panel>
-        <SectionTitle left={<HardDriveDownload className="size-4" aria-hidden />}>
-          Data Management
-        </SectionTitle>
+            <form onSubmit={handlePinSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
+              {!hasPin && (
+                <>
+                  <Field label="Set New PIN" htmlFor="pin-new" required error={pinError}>
+                    <input
+                      id="pin-new"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className={inputClass}
+                      value={pinFields.new}
+                      onChange={(e) => {
+                        setPinFields((f) => ({ ...f, new: e.target.value }));
+                        setPinError("");
+                      }}
+                      placeholder="Enter 4–6 numeric digits"
+                    />
+                  </Field>
+                  <Field label="Confirm New PIN" htmlFor="pin-confirm" required error={pinError}>
+                    <input
+                      id="pin-confirm"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className={inputClass}
+                      value={pinFields.confirm}
+                      onChange={(e) => {
+                        setPinFields((f) => ({ ...f, confirm: e.target.value }));
+                        setPinError("");
+                      }}
+                      placeholder="Repeat PIN"
+                    />
+                  </Field>
+                </>
+              )}
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <button type="button" className={btnOutline} onClick={handleExport}>
-            <Download className="size-4" aria-hidden /> Export All Data
-          </button>
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".json,application/json"
-              className="hidden"
-              id="import-file"
-              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-            />
-            <label htmlFor="import-file" className={btnOutline}>
-              <Upload className="size-4" aria-hidden /> Import Data
-            </label>
-          </div>
+              {hasPin && pinMode === "change" && (
+                <>
+                  <Field label="Current PIN" htmlFor="pin-current" required error={pinError}>
+                    <input
+                      id="pin-current"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className={inputClass}
+                      value={pinFields.current}
+                      onChange={(e) => {
+                        setPinFields((f) => ({ ...f, current: e.target.value }));
+                        setPinError("");
+                      }}
+                      placeholder="Enter current PIN"
+                    />
+                  </Field>
+                  <Field label="New PIN" htmlFor="pin-new" required error={pinError}>
+                    <input
+                      id="pin-new"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className={inputClass}
+                      value={pinFields.new}
+                      onChange={(e) => {
+                        setPinFields((f) => ({ ...f, new: e.target.value }));
+                        setPinError("");
+                      }}
+                      placeholder="4–6 digits"
+                    />
+                  </Field>
+                  <Field
+                    label="Confirm New PIN"
+                    htmlFor="pin-confirm"
+                    required
+                    error={pinError}
+                    sm:col-span-2
+                  >
+                    <input
+                      id="pin-confirm"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className={inputClass}
+                      value={pinFields.confirm}
+                      onChange={(e) => {
+                        setPinFields((f) => ({ ...f, confirm: e.target.value }));
+                        setPinError("");
+                      }}
+                      placeholder="Confirm new PIN"
+                    />
+                  </Field>
+                </>
+              )}
+
+              {hasPin && pinMode === "disable" && (
+                <Field
+                  label="Enter Current PIN to Disable"
+                  htmlFor="pin-current"
+                  required
+                  error={pinError}
+                  sm:col-span-2
+                >
+                  <input
+                    id="pin-current"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className={inputClass}
+                    value={pinFields.current}
+                    onChange={(e) => {
+                      setPinFields((f) => ({ ...f, current: e.target.value }));
+                      setPinError("");
+                    }}
+                    placeholder="Enter current PIN"
+                  />
+                </Field>
+              )}
+
+              <div className="flex flex-wrap gap-2.5 sm:col-span-2 pt-2">
+                {!hasPin ? (
+                  <button type="submit" className={btnPrimary}>
+                    <Lock className="size-4" /> Enable PIN Lock
+                  </button>
+                ) : pinMode === "change" ? (
+                  <>
+                    <button type="submit" className={btnPrimary}>
+                      <RotateCcw className="size-4" /> Update PIN
+                    </button>
+                    <button
+                      type="button"
+                      className={btnDanger}
+                      onClick={() => {
+                        setPinMode("disable");
+                        setPinFields({ current: "", new: "", confirm: "" });
+                        setPinError("");
+                      }}
+                    >
+                      <Trash2 className="size-4" /> Turn Off PIN
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="submit" className={btnDanger}>
+                      <X className="size-4" /> Confirm & Disable PIN
+                    </button>
+                    <button
+                      type="button"
+                      className={btnOutline}
+                      onClick={() => {
+                        setPinMode("change");
+                        setPinFields({ current: "", new: "", confirm: "" });
+                        setPinError("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            </form>
+          </Panel>
         </div>
-
-        <div className="mt-4 rounded-lg border border-border bg-elevated p-3">
-          <div className="flex items-center gap-3">
-            <span className="label-xs">Import mode</span>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="import-mode"
-                value="merge"
-                checked={importMode === "merge"}
-                onChange={() => setImportMode("merge")}
-                className="sr-only peer"
-              />
-              <span className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium border border-border bg-elevated peer-checked:border-primary peer-checked:bg-primary/15 peer-checked:text-primary">
-                Merge
-              </span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="import-mode"
-                value="replace"
-                checked={importMode === "replace"}
-                onChange={() => setImportMode("replace")}
-                className="sr-only peer"
-              />
-              <span className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium border border-border bg-elevated peer-checked:border-destructive peer-checked:bg-destructive/15 peer-checked:text-destructive">
-                Replace
-              </span>
-            </label>
-            <span className="text-xs text-muted-foreground ml-auto">
-              Merge adds records · Replace overwrites
-            </span>
-          </div>
-        </div>
-      </Panel>
-
-      {/* Backup */}
-      <Panel>
-        <SectionTitle left={<FilePlus className="size-4" aria-hidden />}>
-          Backup & Restore
-        </SectionTitle>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <button type="button" className={btnPrimary} onClick={handleExport}>
-            <HardDriveDownload className="size-4" aria-hidden /> Create Backup
-          </button>
-          <button type="button" className={btnOutline} onClick={handleRestore}>
-            <RotateCcw className="size-4" aria-hidden /> Restore Backup
-          </button>
-        </div>
-      </Panel>
-
-      {/* 📊 Excel & CSV Report Exports */}
-      <Panel>
-        <SectionTitle
-          left={<FileSpreadsheetIcon className="size-4 text-emerald-400" aria-hidden />}
-          right={
-            <span className="text-xs font-semibold text-emerald-400">
-              Instant Download
-            </span>
-          }
-        >
-          Export Reports (Excel & CSV)
-        </SectionTitle>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {/* Master Workbook */}
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-left transition-all hover:bg-emerald-500/15 group"
-            onClick={() => {
-              exportCompleteBusinessWorkbook(
-                { inventory, sales, purchases, expenses, investments },
-                currency,
-              );
-              toast.success("Master Business Excel Workbook downloaded!");
-            }}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
-              <FileSpreadsheetIcon className="size-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground group-hover:text-emerald-400 transition-colors">
-                Master Business Workbook (.xlsx)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                All-in-one file: Inventory, Sales, Purchases, Expenses & Investments
-              </p>
-            </div>
-          </button>
-
-          {/* Stock Inventory */}
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
-            onClick={() => {
-              exportStockInventoryExcel(inventory, currency, settings.low_stock_threshold);
-              toast.success("Stock Inventory Excel report downloaded!");
-            }}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
-              <Download className="size-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                Stock Inventory Report (.xlsx)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Item quantities, average cost prices, total stock valuation & status
-              </p>
-            </div>
-          </button>
-
-          {/* Sales History */}
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
-            onClick={() => {
-              exportSalesReportExcel(sales, currency);
-              toast.success("Sales History Excel report downloaded!");
-            }}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/20 text-teal-400">
-              <Download className="size-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                Sales & Profit History (.xlsx)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                All recorded customer sales, revenue, profit margins & quantities
-              </p>
-            </div>
-          </button>
-
-          {/* Expenses Sheet */}
-          <button
-            type="button"
-            className="flex items-center gap-3 rounded-xl border border-border bg-elevated/60 p-3.5 text-left transition-all hover:bg-elevated group"
-            onClick={() => {
-              exportExpensesReportExcel(expenses, currency);
-              toast.success("Expenses Excel sheet downloaded!");
-            }}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
-              <Download className="size-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                Shop Expenses Sheet (.xlsx)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Categorized overheads, bills, maintenance and expense total
-              </p>
-            </div>
-          </button>
-        </div>
-      </Panel>
+      )}
 
       {/* Import Confirmation Dialog */}
       <ConfirmDialog
@@ -965,206 +1297,6 @@ function SettingsPage() {
         destructive={importMode === "replace"}
         onConfirm={confirmImport}
       />
-
-      {/* Google Sheets Sync */}
-      <Panel>
-        <SectionTitle left={<FileSpreadsheet className="size-4" aria-hidden />}>
-          Google Sheets Sync
-        </SectionTitle>
-
-        <div className="mt-4 space-y-4">
-          {/* Step 1: Google Account */}
-          <div className="rounded-xl border border-border bg-elevated/60 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-                    1
-                  </span>
-                  <p className="text-sm font-semibold text-foreground">Google Account</p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {connectedEmail ? (
-                    <span>
-                      Active: <strong className="text-foreground">{connectedEmail}</strong>
-                      {!isTokenValid() && (
-                        <span className="ml-2 inline-flex items-center text-amber-500 font-medium">
-                          · Session Expired (Reconnect)
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    "Sign in with your Google account."
-                  )}
-                </p>
-              </div>
-
-              {connectedEmail ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {!isTokenValid() && (
-                    <button
-                      type="button"
-                      onClick={handleSignInGoogle}
-                      disabled={signingIn}
-                      className={btnPrimary}
-                      title="Session expired. Click to renew."
-                    >
-                      <RotateCcw className="size-4" aria-hidden />
-                      {signingIn ? "Reconnecting..." : "Reconnect"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleSignInGoogle}
-                    disabled={signingIn}
-                    className={btnOutline}
-                  >
-                    Switch
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSignOutGoogle}
-                    className={btnDanger}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSignInGoogle}
-                  disabled={signingIn}
-                  className={btnPrimary}
-                >
-                  <Mail className="size-4" aria-hidden />
-                  {signingIn ? "Signing in..." : "Sign in with Google"}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Step 2: Link Google Sheet */}
-          <div className="rounded-xl border border-border bg-elevated/60 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-                2
-              </span>
-              <p className="text-sm font-semibold text-foreground">Link Google Sheet</p>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="sheet-url" className="label-xs block">
-                Google Sheet URL or ID
-              </label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  id="sheet-url"
-                  className={inputClass}
-                  value={sheetUrl}
-                  onChange={handleSheetUrlChange}
-                  placeholder="Paste Google Sheet URL or ID..."
-                />
-                {isConnected ? (
-                  <button
-                    type="button"
-                    className={btnDanger}
-                    onClick={handleDisconnectSheet}
-                    disabled={syncing}
-                  >
-                    <X className="size-4" aria-hidden /> Disconnect
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={btnPrimary}
-                    onClick={handleConnectSheet}
-                    disabled={!canConnect || syncing}
-                  >
-                    <FileSpreadsheet className="size-4" aria-hidden />
-                    {syncing ? "Connecting..." : "Link Sheet"}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Connected Details */}
-            {isConnected && (
-              <div className="mt-4 rounded-lg border border-border bg-background p-4 space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="label-xs">Sheet Name</p>
-                    <p className="font-medium text-sm text-foreground truncate mt-0.5">
-                      {sheetTitle || "Google Sheet"}
-                    </p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <p className="label-xs">Permission</p>
-                      <button
-                        type="button"
-                        onClick={handleRefreshPermissions}
-                        disabled={refreshingPerms || syncing}
-                        className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-50"
-                        title="Re-check permissions"
-                      >
-                        <RefreshCw className={cn("size-3", refreshingPerms && "animate-spin")} />
-                        Re-check
-                      </button>
-                    </div>
-                    <div className="mt-0.5">
-                      {sheetRole === "edit" ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                          <Edit3 className="size-3" /> Editor · Full Access
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                          <Eye className="size-3" /> Viewer · Read-Only
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="label-xs">Connected Account</p>
-                    <p className="font-medium text-xs text-foreground truncate mt-0.5">
-                      {connectedEmail || "Google Account"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="label-xs">Last Sync</p>
-                    <p className="font-medium text-xs text-foreground mt-0.5">
-                      {settings.last_sync_time
-                        ? format(new Date(settings.last_sync_time), "dd MMM yyyy, HH:mm")
-                        : "Just now"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={btnOutline}
-                    onClick={handleSyncFromSheets}
-                    disabled={syncing}
-                  >
-                    <RotateCcw className="size-4" aria-hidden />
-                    {syncing ? "Syncing..." : "Pull from Sheets"}
-                  </button>
-                  <button
-                    type="button"
-                    className={btnPrimary}
-                    onClick={handleSyncToSheets}
-                    disabled={syncing || isReadOnly}
-                    title={isReadOnly ? "Viewer mode: You cannot edit this sheet" : undefined}
-                  >
-                    <RotateCcw className="size-4" aria-hidden />
-                    {isReadOnly ? "Write Disabled (Viewer)" : syncing ? "Pushing..." : "Push to Sheets"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Panel>
     </div>
   );
 }
