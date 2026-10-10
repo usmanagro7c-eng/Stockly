@@ -32,7 +32,7 @@ describe("syncManager.mergeRecords", () => {
 
     const result = syncManager.mergeRecords(local, remote, "record_id", deletedMap);
     expect(result).toHaveLength(1);
-    expect(result[0].record_id).toBe("BUY-2");
+    expect(result[0]?.record_id).toBe("BUY-2");
     expect(result.find((r) => r.record_id === "BUY-1")).toBeUndefined();
   });
 

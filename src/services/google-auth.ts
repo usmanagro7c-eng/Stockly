@@ -186,6 +186,7 @@ export async function authenticate(): Promise<AuthState> {
         throw new Error("Google authentication failed — no access token received");
       }
       writeLocal("googleSheetToken", result.accessToken);
+      writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
       writeLocal("googleSheetEmail", result.email ?? "");
       return { isAuthenticated: true, hasToken: true, email: result.email };
     } catch (error) {
@@ -283,8 +284,8 @@ export function isTokenExpiringSoon(): boolean {
   const token = readLocal("googleSheetToken");
   if (!token) return true;
   const expiresAt = Number(readLocal("googleSheetTokenExpiresAt"));
-  if (!expiresAt) return false;
-  return Date.now() > expiresAt - 120_000;
+  if (!expiresAt) return true;
+  return Date.now() > expiresAt - 180_000;
 }
 
 /**
@@ -331,6 +332,9 @@ export async function revokeAccess(): Promise<void> {
 export function isTokenValid(): boolean {
   const token = readLocal("googleSheetToken");
   if (!token) return false;
+  if (isNativePlatform()) {
+    return true;
+  }
   const expiresAt = Number(readLocal("googleSheetTokenExpiresAt"));
   if (expiresAt && Date.now() > expiresAt) {
     return false;

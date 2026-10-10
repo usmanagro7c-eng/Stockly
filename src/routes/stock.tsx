@@ -433,7 +433,7 @@ function AdjustDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto rounded-3xl p-6 border-border/80 bg-card/95 backdrop-blur-2xl">
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto rounded-3xl p-6 border-border/80 bg-card shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Adjust Stock Units</DialogTitle>
           <DialogDescription>
@@ -606,7 +606,7 @@ function ModelDetail({
   return (
     <>
       <Dialog open={Boolean(model && item)} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-3xl p-6 border-border/80 bg-card/95 backdrop-blur-2xl">
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-3xl p-6 border-border/80 bg-card shadow-2xl">
           <DialogHeader>
             <div className="flex items-center justify-between gap-2">
               <DialogTitle className="text-xl font-bold">{model}</DialogTitle>

@@ -312,8 +312,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile Top Header (Modern Glassmorphic Header) */}
-      <header className="pad-safe-top sticky top-0 z-20 border-b border-border/50 bg-background/80 backdrop-blur-2xl lg:hidden">
+      {/* Mobile Top Header (Clean Fast Header) */}
+      <header className="pad-safe-top sticky top-0 z-20 border-b border-border/60 bg-background/95 lg:hidden">
         <div className="flex items-center justify-between px-4 py-2.5">
           <Brand />
 
@@ -383,7 +383,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         aria-label="Mobile Navigation"
         className="fixed inset-x-3 bottom-2.5 z-30 lg:hidden select-none"
       >
-        <div className="flex h-16 items-center justify-around rounded-2xl border border-border/80 bg-card/92 px-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 dark:ring-white/5">
+        <div className="flex h-16 items-center justify-around rounded-2xl border border-border/80 bg-card px-2 shadow-2xl ring-1 ring-white/10 dark:ring-white/5">
           {/* Tab 1: Buy */}
           <Link
             to="/buy"
@@ -463,103 +463,112 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      {/* Mobile "More" Sheet Modal (Bottom Sheet native feeling) */}
-      {moreOpen && (
+      {/* Mobile "More" Sheet Drawer (Pre-rendered & Hardware-Accelerated for 0ms Instant Response) */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden select-none transition-all duration-200",
+          moreOpen ? "pointer-events-auto visible" : "pointer-events-none invisible",
+        )}
+        role="dialog"
+        aria-modal={moreOpen}
+        aria-label="Navigation Menu"
+      >
+        {/* Backdrop: High-perf semi-transparent dark overlay */}
         <div
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation Menu"
+          className={cn(
+            "absolute inset-0 bg-black/60 transition-opacity duration-200 ease-out will-change-opacity",
+            moreOpen ? "opacity-100" : "opacity-0",
+          )}
+          onClick={() => setMoreOpen(false)}
+        />
+
+        {/* Bottom Sheet Card: Fast CSS translateY */}
+        <div
+          className={cn(
+            "pad-safe-bottom absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-border bg-card p-5 shadow-2xl transition-transform duration-250 ease-out will-change-transform",
+            moreOpen ? "translate-y-0" : "translate-y-full",
+          )}
         >
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-md transition-opacity duration-200"
-            onClick={() => setMoreOpen(false)}
-          />
+          {/* Sheet Handle */}
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border/80" />
 
-          {/* Bottom Sheet Card */}
-          <div className="pad-safe-bottom absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-border/80 bg-card/95 p-5 shadow-pop backdrop-blur-2xl animate-in slide-in-from-bottom duration-250">
-            {/* Sheet Handle */}
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border/80" />
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-foreground">Navigation & Tools</h2>
+              <p className="text-xs text-muted-foreground">Quick access to reports, logs & store settings</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(false)}
+              className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-elevated/70 text-muted-foreground hover:text-foreground active:scale-90 transition-all"
+              aria-label="Close menu"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </div>
 
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-foreground">Navigation & Tools</h2>
-                <p className="text-xs text-muted-foreground">Quick access to reports, logs & store settings</p>
+          {/* Google Sheets Quick Card inside More Drawer */}
+          <div className="mb-4 rounded-2xl border border-border/80 bg-elevated/50 p-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                <FileSpreadsheet className="size-5" />
               </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {settings.linked_file_name ? "Google Sheets Connected" : "Google Sheets Backup"}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {settings.linked_file_name
+                    ? (sheetRole === "read" ? "Viewer mode active" : "Auto-sync enabled")
+                    : "Link your Google Sheet"}
+                </p>
+              </div>
+            </div>
+
+            {settings.linked_file_name ? (
               <button
                 type="button"
-                onClick={() => setMoreOpen(false)}
-                className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-elevated/70 text-muted-foreground hover:text-foreground active:scale-90 transition-all"
-                aria-label="Close menu"
+                onClick={async () => {
+                  await handleManualSync();
+                }}
+                disabled={syncing}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary/15 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary active:scale-95 transition-all"
               >
-                <X className="size-4" aria-hidden />
+                <RefreshCw className={cn("size-3", syncing && "animate-spin")} />
+                <span>{syncing ? "Syncing..." : "Sync Now"}</span>
               </button>
-            </div>
+            ) : (
+              <Link
+                to="/settings"
+                onClick={() => setMoreOpen(false)}
+                className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground active:scale-95 transition-all"
+              >
+                Connect
+              </Link>
+            )}
+          </div>
 
-            {/* Google Sheets Quick Card inside More Drawer */}
-            <div className="mb-4 rounded-2xl border border-border/80 bg-elevated/50 p-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-                  <FileSpreadsheet className="size-5" />
+          {/* Navigation Cards Grid */}
+          <div className="grid grid-cols-2 gap-2.5 pb-2">
+            {[...analyticsNav, ...systemNav].map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setMoreOpen(false)}
+                className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/60 p-3.5 text-left transition-all hover:bg-accent active:scale-95"
+              >
+                <div className={cn("flex size-9 items-center justify-center rounded-xl bg-gradient-to-br shadow-xs", item.color || "from-primary/20 to-primary/5 text-primary")}>
+                  <item.icon className="size-4.5" aria-hidden />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">
-                    {settings.linked_file_name ? "Google Sheets Connected" : "Google Sheets Backup"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {settings.linked_file_name
-                      ? (sheetRole === "read" ? "Viewer mode active" : "Auto-sync enabled")
-                      : "Link your Google Sheet"}
-                  </p>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                  <p className="text-[11px] text-muted-foreground/80 leading-tight">{item.description}</p>
                 </div>
-              </div>
-
-              {settings.linked_file_name ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await handleManualSync();
-                  }}
-                  disabled={syncing}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary/15 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary active:scale-95 transition-all"
-                >
-                  <RefreshCw className={cn("size-3", syncing && "animate-spin")} />
-                  <span>{syncing ? "Syncing..." : "Sync Now"}</span>
-                </button>
-              ) : (
-                <Link
-                  to="/settings"
-                  onClick={() => setMoreOpen(false)}
-                  className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground active:scale-95 transition-all"
-                >
-                  Connect
-                </Link>
-              )}
-            </div>
-
-            {/* Navigation Cards Grid */}
-            <div className="grid grid-cols-2 gap-2.5 pb-2">
-              {[...analyticsNav, ...systemNav].map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMoreOpen(false)}
-                  className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/60 p-3.5 text-left transition-all hover:bg-accent active:scale-95"
-                >
-                  <div className={cn("flex size-9 items-center justify-center rounded-xl bg-gradient-to-br shadow-xs", item.color || "from-primary/20 to-primary/5 text-primary")}>
-                    <item.icon className="size-4.5" aria-hidden />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
-                    <p className="text-[11px] text-muted-foreground/80 leading-tight">{item.description}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+              </Link>
+            ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

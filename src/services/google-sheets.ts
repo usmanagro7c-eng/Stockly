@@ -504,7 +504,7 @@ export class GoogleSheetsService {
       if (response.status === 401) {
         if (isNativePlatform()) {
           const refreshedToken = await refreshAccessTokenSilently().catch(() => null);
-          if (refreshedToken && refreshedToken !== token) {
+          if (refreshedToken) {
             this.accessToken = refreshedToken;
             const retryHeaders: HeadersInit = {
               ...headers,

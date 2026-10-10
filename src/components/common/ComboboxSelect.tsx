@@ -246,7 +246,7 @@ export function ComboboxSelect({
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-1.5 w-full min-w-[280px] rounded-2xl border border-border/90 bg-popover/98 p-1.5 text-popover-foreground shadow-2xl backdrop-blur-2xl transition-all duration-150 animate-in fade-in-0 zoom-in-95",
+            "absolute z-50 mt-1.5 w-full min-w-[280px] rounded-2xl border border-border/90 bg-popover p-1.5 text-popover-foreground shadow-2xl transition-all duration-150 animate-in fade-in-0 zoom-in-95",
             "max-w-[calc(100vw-2rem)]",
           )}
           style={{ maxHeight: "min(360px, 70vh)" }}

@@ -3,7 +3,7 @@ import { syncManager } from "@/services/sync-manager";
 import { useStockStore } from "@/store/stockStore";
 import { isTokenValid } from "@/services/google-auth";
 
-const PULL_INTERVAL_MS = 60_000;
+const PULL_INTERVAL_MS = 25_000;
 /** App resume fires visibilitychange immediately; coalesce the burst. */
 const VISIBILITY_DEBOUNCE_MS = 3_000;
 

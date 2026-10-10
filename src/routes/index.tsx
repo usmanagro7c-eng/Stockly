@@ -187,7 +187,7 @@ function Dashboard() {
       )}
 
       {/* 💳 Executive Fintech Hero Balance Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/12 via-card/95 to-card/75 p-5 shadow-xl backdrop-blur-2xl">
+      <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/12 via-card/95 to-card/75 p-5 shadow-xl">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
             <TrendingUp className="size-3.5 text-emerald-400" />

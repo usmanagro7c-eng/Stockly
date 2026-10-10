@@ -189,7 +189,9 @@ function SettingsPage() {
 
   /* --- Google Sheets Sync --- */
   const [sheetUrl, setSheetUrl] = useState(settings.linked_file_name || "");
-  const [syncing, setSyncing] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [pushing, setPushing] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(() => getGoogleEmail());
   const [sheetTitle, setSheetTitle] = useState<string | null>(() => getGoogleSheetTitle());
@@ -275,7 +277,7 @@ function SettingsPage() {
       toast.error("Invalid Google Sheet URL or ID");
       return;
     }
-    setSyncing(true);
+    setConnecting(true);
     try {
       await ensureAuth();
       await connectGoogleSheet(id);
@@ -289,7 +291,7 @@ function SettingsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to connect to Google Sheet");
     } finally {
-      setSyncing(false);
+      setConnecting(false);
     }
   };
 
@@ -306,7 +308,7 @@ function SettingsPage() {
   };
 
   const handleSyncToSheets = async () => {
-    setSyncing(true);
+    setPushing(true);
     try {
       await ensureAuth();
       await syncToGoogleSheets();
@@ -314,12 +316,12 @@ function SettingsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
     } finally {
-      setSyncing(false);
+      setPushing(false);
     }
   };
 
   const handleSyncFromSheets = async () => {
-    setSyncing(true);
+    setPulling(true);
     try {
       await ensureAuth();
       await syncFromGoogleSheets();
@@ -327,13 +329,14 @@ function SettingsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
     } finally {
-      setSyncing(false);
+      setPulling(false);
     }
   };
 
   const isConnected = Boolean(settings.linked_file_name);
   const canConnect = Boolean(sheetUrl);
   const isReadOnly = sheetRole === "read";
+  const isBusy = pulling || pushing || connecting || refreshingPerms;
 
   /* --- Backup & Restore --- */
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
@@ -808,7 +811,7 @@ function SettingsPage() {
                         type="button"
                         className={cn(btnDanger, "whitespace-nowrap")}
                         onClick={handleDisconnectSheet}
-                        disabled={syncing}
+                        disabled={isBusy}
                       >
                         <X className="size-4" /> Disconnect
                       </button>
@@ -817,10 +820,10 @@ function SettingsPage() {
                         type="button"
                         className={cn(btnPrimary, "whitespace-nowrap")}
                         onClick={handleConnectSheet}
-                        disabled={!canConnect || syncing}
+                        disabled={!canConnect || isBusy}
                       >
                         <FileSpreadsheet className="size-4" />
-                        {syncing ? "Connecting..." : "Link Sheet"}
+                        {connecting ? "Connecting..." : "Link Sheet"}
                       </button>
                     )}
                   </div>
@@ -843,7 +846,7 @@ function SettingsPage() {
                           <button
                             type="button"
                             onClick={handleRefreshPermissions}
-                            disabled={refreshingPerms || syncing}
+                            disabled={isBusy}
                             className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-50"
                           >
                             <RefreshCw className={cn("size-3", refreshingPerms && "animate-spin")} />
@@ -881,24 +884,26 @@ function SettingsPage() {
                     </div>
 
                     <div className="pt-3 border-t border-border/80 flex flex-wrap gap-2.5">
+                      {/* Pull from Sheets: only pulls from remote */}
                       <button
                         type="button"
                         className={cn(btnOutline, "flex-1 sm:flex-initial")}
                         onClick={handleSyncFromSheets}
-                        disabled={syncing}
+                        disabled={isBusy}
                       >
-                        <RotateCcw className={cn("size-4", syncing && "animate-spin")} />
-                        {syncing ? "Syncing..." : "Pull from Sheets"}
+                        <Download className={cn("size-4", pulling ? "animate-bounce text-primary" : "")} />
+                        {pulling ? "Pulling..." : "Pull from Sheets"}
                       </button>
 
+                      {/* Push to Sheets: only pushes local to remote */}
                       <button
                         type="button"
                         className={cn(btnPrimary, "flex-1 sm:flex-initial")}
                         onClick={handleSyncToSheets}
-                        disabled={syncing || isReadOnly}
+                        disabled={isBusy || isReadOnly}
                       >
-                        <RotateCcw className={cn("size-4", syncing && "animate-spin")} />
-                        {isReadOnly ? "Viewer Only (No Write)" : syncing ? "Pushing..." : "Push to Sheets"}
+                        <Upload className={cn("size-4", pushing ? "animate-bounce" : "")} />
+                        {isReadOnly ? "Viewer Only (No Write)" : pushing ? "Pushing..." : "Push to Sheets"}
                       </button>
                     </div>
                   </div>

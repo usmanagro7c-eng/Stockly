@@ -186,22 +186,29 @@ html.oled {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
-    background-image: 
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.75 0.16 160 / 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.73 0.13 234 / 0.04), transparent);
-    background-attachment: fixed;
     min-height: 100vh;
   }
 
-  html.light body {
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.75 0.16 160 / 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.73 0.13 234 / 0.04), transparent);
+    transform: translateZ(0);
+  }
+
+  html.light body::before {
     background-image: 
       radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.55 0.17 160 / 0.04), transparent),
       radial-gradient(ellipse 60% 40% at 100% 100%, oklch(0.55 0.15 234 / 0.03), transparent);
   }
 
-  html.oled body {
-    background-image: none;
-    background-color: #000000;
+  html.oled body::before {
+    display: none;
   }
 
   input,
@@ -254,8 +261,6 @@ html.oled {
 
 @utility surface {
   background-color: var(--color-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-card);
@@ -264,8 +269,6 @@ html.oled {
 
 @utility surface-elevated {
   background-color: var(--color-elevated);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-pop);
@@ -280,8 +283,6 @@ html.oled {
 
 @utility glass-card {
   background: linear-gradient(135deg, oklch(0.22 0.02 256 / 0.8) 0%, oklch(0.17 0.018 256 / 0.9) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid oklch(1 0 0 / 0.1);
 }
 
