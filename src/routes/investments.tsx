@@ -18,6 +18,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ComboboxSelect, type ComboboxOption } from "@/components/common/ComboboxSelect";
 import {
   EmptyState,
   Field,
@@ -144,6 +145,14 @@ function InvestmentsPage() {
     });
     return Array.from(set).sort();
   }, [investments]);
+
+  const investorOptions = useMemo<ComboboxOption[]>(() => {
+    return existingInvestors.map((name) => ({
+      value: name,
+      label: name,
+      icon: Users,
+    }));
+  }, [existingInvestors]);
 
   // Overall Financial Calculations
   const metrics = useMemo(() => {
@@ -419,20 +428,17 @@ function InvestmentsPage() {
               error={errors.investor}
               hint="Name of the person, partner, or bank"
             >
-              <input
+              <ComboboxSelect
                 id="inv-name"
-                list="investors-list"
-                className={inputClass}
                 value={form.investor}
-                onChange={(e) => setField("investor", e.target.value)}
-                placeholder="e.g. Usman Amjad, Partner A, Bank"
+                onChange={(val) => setField("investor", val)}
+                options={investorOptions}
+                placeholder="Select or enter partner / investor..."
+                searchPlaceholder="Search or type name..."
+                allowCustom={true}
+                customActionLabel={(txt) => `+ Use "${txt}" as investor`}
                 disabled={isReadOnly}
               />
-              <datalist id="investors-list">
-                {existingInvestors.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
             </Field>
 
             {/* Amount with Quick Chips */}

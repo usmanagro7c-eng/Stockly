@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, Tag, Trash2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle } from "lucide-react";
+import { Eye, Pencil, Tag, Trash2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Package, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ComboboxSelect, type ComboboxOption } from "@/components/common/ComboboxSelect";
 import {
   EmptyState,
   Field,
@@ -93,6 +94,39 @@ function SellPage() {
       ),
     [inventory, editingSale],
   );
+
+  const modelOptions = useMemo<ComboboxOption[]>(() => {
+    return sellable.map((i) => {
+      const isLow = i.remaining <= threshold;
+      return {
+        value: i.model,
+        label: i.model,
+        icon: Package,
+        sublabel: `Weighted Cost: ${formatMoney(i.avg_cost, currency)} / unit`,
+        badge: (
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border",
+              isLow
+                ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+            )}
+          >
+            {formatUnits(i.remaining)} in stock
+          </span>
+        ),
+      };
+    });
+  }, [sellable, currency, threshold]);
+
+  const customerOptions = useMemo<ComboboxOption[]>(() => {
+    const list = Array.from(new Set(sales.map((s) => s.customer.trim()).filter(Boolean)));
+    return list.map((c) => ({
+      value: c,
+      label: c,
+      icon: User,
+    }));
+  }, [sales]);
 
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -225,20 +259,16 @@ function SellPage() {
 
           {/* Model selection */}
           <Field label="Stock Model" htmlFor="sell-model" required error={errors.model}>
-            <select
+            <ComboboxSelect
               id="sell-model"
-              className={inputClass}
               value={form.model}
-              onChange={(e) => set("model", e.target.value)}
+              onChange={(val) => set("model", val)}
+              options={modelOptions}
+              placeholder="Search & select model in stock..."
+              searchPlaceholder="Type model name (e.g. iPhone, Samsung)..."
               disabled={isReadOnly}
-            >
-              <option value="">Select a model in stock</option>
-              {sellable.map((i) => (
-                <option key={i.model} value={i.model}>
-                  {i.model} ({formatUnits(i.remaining)} available · Cost: {formatMoney(i.avg_cost, currency)})
-                </option>
-              ))}
-            </select>
+              emptyText="No items in stock matching this name"
+            />
           </Field>
 
           {/* Date */}
@@ -340,12 +370,15 @@ function SellPage() {
 
           {/* Customer */}
           <Field label="Customer Name" htmlFor="sell-customer">
-            <input
+            <ComboboxSelect
               id="sell-customer"
-              className={inputClass}
               value={form.customer}
-              onChange={(e) => set("customer", e.target.value)}
+              onChange={(val) => set("customer", val)}
+              options={customerOptions}
               placeholder="e.g. Walk-in or Client name"
+              searchPlaceholder="Type or search customer name..."
+              allowCustom={true}
+              customActionLabel={(txt) => `Use "${txt}" as customer`}
               disabled={isReadOnly}
             />
           </Field>

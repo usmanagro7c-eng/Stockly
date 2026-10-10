@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, Receipt, Trash2, Tag, Download } from "lucide-react";
+import { Eye, Pencil, Receipt, Trash2, Tag, Download, Zap, Building, Users, Wrench, Truck, Megaphone, Coffee } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ComboboxSelect, type ComboboxOption } from "@/components/common/ComboboxSelect";
 import {
   EmptyState,
   Field,
@@ -67,6 +68,23 @@ function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const debounced = useDebounced(search, 300);
+
+  const categoryOptions = useMemo<ComboboxOption[]>(() => {
+    const iconMap: Record<string, typeof Receipt> = {
+      Utilities: Zap,
+      Rent: Building,
+      Salary: Users,
+      Maintenance: Wrench,
+      Shipping: Truck,
+      Marketing: Megaphone,
+      "Tea / Food": Coffee,
+    };
+    return EXPENSE_CATEGORIES.map((cat) => ({
+      value: cat,
+      label: cat,
+      icon: iconMap[cat] || Receipt,
+    }));
+  }, []);
 
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -178,20 +196,17 @@ function ExpensesPage() {
 
           {/* Category selection */}
           <Field label="Expense Category" htmlFor="exp-type" required error={errors.expense_type}>
-            <select
+            <ComboboxSelect
               id="exp-type"
-              className={inputClass}
               value={form.expense_type}
-              onChange={(e) => set("expense_type", e.target.value)}
+              onChange={(val) => set("expense_type", val)}
+              options={categoryOptions}
+              placeholder="Select expense category..."
+              searchPlaceholder="Search category or type custom..."
+              allowCustom={true}
+              customActionLabel={(txt) => `+ Use "${txt}" as custom category`}
               disabled={isReadOnly}
-            >
-              <option value="">Select a category</option>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
 
           {/* Amount */}

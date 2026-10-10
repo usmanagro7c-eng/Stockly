@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, ShoppingCart, Trash2, ArrowDownLeft } from "lucide-react";
+import { Eye, Pencil, ShoppingCart, Trash2, ArrowDownLeft, Building2, Package } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ComboboxSelect, type ComboboxOption } from "@/components/common/ComboboxSelect";
 import {
   EmptyState,
   Field,
@@ -73,6 +74,29 @@ function BuyPage() {
   const debounced = useDebounced(search, 300);
 
   const totalCost = toNumber(form.quantity) * toNumber(form.buying_price);
+
+  const modelOptions = useMemo<ComboboxOption[]>(() => {
+    return inventory.map((i) => ({
+      value: i.model,
+      label: i.model,
+      icon: Package,
+      sublabel: `Current stock: ${formatUnits(i.remaining)} units · Avg Cost: ${formatMoney(i.avg_cost, currency)}`,
+      badge: (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+          {formatUnits(i.remaining)} in stock
+        </span>
+      ),
+    }));
+  }, [inventory, currency]);
+
+  const supplierOptions = useMemo<ComboboxOption[]>(() => {
+    const list = Array.from(new Set(purchases.map((p) => p.supplier.trim()).filter(Boolean)));
+    return list.map((s) => ({
+      value: s,
+      label: s,
+      icon: Building2,
+    }));
+  }, [purchases]);
 
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -192,24 +216,19 @@ function BuyPage() {
             </div>
           )}
 
-          {/* Model name with datalist */}
+          {/* Model name */}
           <Field label="Stock Model Name" htmlFor="buy-model" required error={errors.model}>
-            <input
+            <ComboboxSelect
               id="buy-model"
-              list="buy-models"
-              className={inputClass}
               value={form.model}
-              onChange={(e) => set("model", e.target.value)}
-              placeholder="Select existing or type a new model name"
+              onChange={(val) => set("model", val)}
+              options={modelOptions}
+              placeholder="Search existing or type new model name..."
+              searchPlaceholder="Type model name..."
+              allowCustom={true}
+              customActionLabel={(txt) => `+ Add "${txt}" as new stock model`}
               disabled={isReadOnly}
             />
-            <datalist id="buy-models">
-              {inventory.map((i) => (
-                <option key={i.model} value={i.model}>
-                  {i.model} ({formatUnits(i.remaining)} currently in stock)
-                </option>
-              ))}
-            </datalist>
           </Field>
 
           {/* Date */}
@@ -294,12 +313,15 @@ function BuyPage() {
 
           {/* Supplier */}
           <Field label="Supplier / Vendor" htmlFor="buy-supplier">
-            <input
+            <ComboboxSelect
               id="buy-supplier"
-              className={inputClass}
               value={form.supplier}
-              onChange={(e) => set("supplier", e.target.value)}
-              placeholder="Vendor name or wholesale market"
+              onChange={(val) => set("supplier", val)}
+              options={supplierOptions}
+              placeholder="e.g. Vendor name or wholesale market"
+              searchPlaceholder="Type or search vendor..."
+              allowCustom={true}
+              customActionLabel={(txt) => `Use "${txt}" as vendor`}
               disabled={isReadOnly}
             />
           </Field>

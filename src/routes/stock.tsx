@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Boxes, Plus, SlidersHorizontal, Trash2, ArrowUpDown, ChevronRight, AlertTriangle, Layers, Download } from "lucide-react";
+import { Boxes, Plus, SlidersHorizontal, Trash2, ArrowUpDown, ChevronRight, AlertTriangle, Layers, Download, Package } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ComboboxSelect, type ComboboxOption } from "@/components/common/ComboboxSelect";
 import {
   Dialog,
   DialogContent,
@@ -345,6 +346,7 @@ function AdjustDialog({
   presetModel?: string;
 }) {
   const saveAdjustment = useStockStore((s) => s.saveAdjustment);
+  const inventory = useInventory();
   const isReadOnly = useIsReadOnly();
   const [model, setModel] = useState(presetModel ?? "");
   const [type, setType] = useState<AdjustmentType>("Found Stock (+)");
@@ -352,6 +354,48 @@ function AdjustDialog({
   const [date, setDate] = useState(todayISO());
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const modelOptions = useMemo<ComboboxOption[]>(() => {
+    return models.map((m) => {
+      const inv = inventory.find((i) => i.model === m);
+      return {
+        value: m,
+        label: m,
+        icon: Package,
+        sublabel: inv ? `Current: ${formatUnits(inv.remaining)} units` : undefined,
+        badge: inv ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+            {formatUnits(inv.remaining)} in stock
+          </span>
+        ) : undefined,
+      };
+    });
+  }, [models, inventory]);
+
+  const typeOptions = useMemo<ComboboxOption[]>(() => {
+    return ADJUSTMENT_TYPES.map((t) => {
+      const isNegative = t.includes("(-)");
+      const isPositive = t.includes("(+)");
+      return {
+        value: t,
+        label: t,
+        badge: (
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border",
+              isNegative
+                ? "bg-destructive/15 text-destructive border-destructive/30"
+                : isPositive
+                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  : "bg-primary/15 text-primary border-primary/30",
+            )}
+          >
+            {isNegative ? "Deduct" : isPositive ? "Add" : "Correction"}
+          </span>
+        ),
+      };
+    });
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,35 +442,28 @@ function AdjustDialog({
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4 mt-2">
           <Field label="Model" htmlFor="adj-model" required error={errors.model}>
-            <input
+            <ComboboxSelect
               id="adj-model"
-              list="adj-models"
-              className={inputClass}
               value={presetModel ?? model}
               disabled={Boolean(presetModel)}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder="Select or enter model"
+              onChange={(val) => setModel(val)}
+              options={modelOptions}
+              placeholder="Search or enter model..."
+              searchPlaceholder="Type model name..."
+              allowCustom={true}
+              customActionLabel={(txt) => `+ Adjust "${txt}"`}
             />
-            <datalist id="adj-models">
-              {models.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </Field>
 
           <Field label="Adjustment Type" htmlFor="adj-type" required>
-            <select
+            <ComboboxSelect
               id="adj-type"
-              className={inputClass}
               value={type}
-              onChange={(e) => setType(e.target.value as AdjustmentType)}
-            >
-              {ADJUSTMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setType(val as AdjustmentType)}
+              options={typeOptions}
+              placeholder="Select adjustment type..."
+              searchPlaceholder="Filter adjustment types..."
+            />
           </Field>
 
           <Field
