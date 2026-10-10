@@ -171,6 +171,13 @@ function SettingsPage() {
     }
   };
 
+  const ensureAuth = async () => {
+    if (!isAuthenticated()) {
+      const auth = await authenticate();
+      setConnectedEmail(auth.email);
+    }
+  };
+
   const handleConnectSheet = async () => {
     const id = extractSheetId(sheetUrl);
     if (!id) {
@@ -179,10 +186,7 @@ function SettingsPage() {
     }
     setSyncing(true);
     try {
-      if (!isAuthenticated()) {
-        const auth = await authenticate();
-        setConnectedEmail(auth.email);
-      }
+      await ensureAuth();
       await connectGoogleSheet(id);
       setSheetTitle(getGoogleSheetTitle());
       const role = syncManager.getRole();
@@ -213,6 +217,7 @@ function SettingsPage() {
   const handleSyncToSheets = async () => {
     setSyncing(true);
     try {
+      await ensureAuth();
       await syncToGoogleSheets();
       toast.success("Synced to Google Sheet!");
     } catch (error) {
@@ -225,6 +230,7 @@ function SettingsPage() {
   const handleSyncFromSheets = async () => {
     setSyncing(true);
     try {
+      await ensureAuth();
       await syncFromGoogleSheets();
       toast.success("Synced from Google Sheet!");
     } catch (error) {

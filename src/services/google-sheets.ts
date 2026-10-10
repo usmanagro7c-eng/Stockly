@@ -478,6 +478,11 @@ export class GoogleSheetsService {
       }>("/?fields=properties.title", "");
     } catch (error) {
       const status = (error as { status?: number }).status;
+      if (status === 401) {
+        throw new Error(
+          "Your Google session has expired. Please sign in again with Google in Settings.",
+        );
+      }
       if (status === 403 || status === 404) {
         throw new Error(
           "Access denied: This Google Sheet is not shared with your signed-in Google account. Please ensure the owner shared it with your Gmail, or switch accounts in Settings.",

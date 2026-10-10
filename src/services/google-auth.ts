@@ -155,6 +155,8 @@ export async function initializeOAuth(): Promise<AuthState> {
       callback: (response: google.accounts.oauth2.TokenResponse) => {
         if (response?.access_token) {
           writeLocal("googleSheetToken", response.access_token);
+          const expiresIn = Number(response.expires_in) || 3500;
+          writeLocal("googleSheetTokenExpiresAt", String(Date.now() + expiresIn * 1000));
         }
         // Settle everyone: a silent renewal and an interactive sign-in that
         // were both waiting can share one response without either hanging.
@@ -167,8 +169,8 @@ export async function initializeOAuth(): Promise<AuthState> {
     });
   }
   return {
-    isAuthenticated: readLocal("googleSheetToken") !== null,
-    hasToken: readLocal("googleSheetToken") !== null,
+    isAuthenticated: isTokenValid(),
+    hasToken: isTokenValid(),
     email: readLocal("googleSheetEmail"),
   };
 }
@@ -237,6 +239,7 @@ export async function authenticate(): Promise<AuthState> {
   });
 
   writeLocal("googleSheetToken", token);
+  writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
 
   let email: string | null = null;
   try {
@@ -256,43 +259,18 @@ export async function authenticate(): Promise<AuthState> {
 }
 
 /**
- * Return a valid access token for the Sheets API. On web, tries a silent
- * (`prompt: ""`) renewal so live sync survives token expiry; falls back to
- * the stored token. On native, returns the token from the last sign-in.
+ * Return a valid access token for the Sheets API.
+ * Returns null if no token is stored or if it has expired.
  */
 export async function getAccessToken(): Promise<string | null> {
   const stored = readLocal("googleSheetToken");
   if (isNativePlatform()) return stored;
 
-  if (typeof window === "undefined" || typeof google === "undefined" || !oauthInstance) {
-    return stored;
+  if (!stored || !isTokenValid()) {
+    return null;
   }
 
-  return new Promise<string | null>((resolve) => {
-    const waiter = (result: TokenResult) => {
-      clearTimeout(timer);
-      resolve(result.token || stored);
-    };
-
-    // Falls back to the stored token so a failed or silently-declined renewal
-    // degrades to "keep using what we have" instead of stalling the sync.
-    const timer = setTimeout(() => {
-      const i = pendingCallbacks.indexOf(waiter);
-      if (i !== -1) pendingCallbacks.splice(i, 1);
-      resolve(stored);
-    }, SILENT_RENEWAL_TIMEOUT_MS);
-
-    pendingCallbacks.push(waiter);
-
-    try {
-      oauthInstance!.requestAccessToken({ prompt: "none" });
-    } catch {
-      clearTimeout(timer);
-      const i = pendingCallbacks.indexOf(waiter);
-      if (i !== -1) pendingCallbacks.splice(i, 1);
-      resolve(stored);
-    }
-  });
+  return stored;
 }
 
 export async function revokeAccess(): Promise<void> {
@@ -318,8 +296,19 @@ export async function revokeAccess(): Promise<void> {
   clearGoogleSheetData();
 }
 
+export function isTokenValid(): boolean {
+  const token = readLocal("googleSheetToken");
+  if (!token) return false;
+  const expiresAt = Number(readLocal("googleSheetTokenExpiresAt"));
+  // If expiry was recorded and expired or expiring in under 60 seconds
+  if (expiresAt && Date.now() > expiresAt - 60_000) {
+    return false;
+  }
+  return true;
+}
+
 export function isAuthenticated(): boolean {
-  return readLocal("googleSheetToken") !== null;
+  return isTokenValid();
 }
 
 export function getGoogleSheetId(): string | null {
@@ -350,6 +339,7 @@ export function setGoogleSheetTitle(title: string): void {
 
 export function setGoogleSheetData(token: string, email: string, sheetId: string): void {
   writeLocal("googleSheetToken", token);
+  writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
   writeLocal("googleSheetEmail", email);
   writeLocal("googleSheetId", sheetId);
   writeLocal("googleLastSync", new Date().toISOString());
@@ -358,6 +348,7 @@ export function setGoogleSheetData(token: string, email: string, sheetId: string
 export function clearGoogleSheetData(): void {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem("googleSheetToken");
+  localStorage.removeItem("googleSheetTokenExpiresAt");
   localStorage.removeItem("googleSheetEmail");
   localStorage.removeItem("googleSheetId");
   localStorage.removeItem("googleSheetTitle");
