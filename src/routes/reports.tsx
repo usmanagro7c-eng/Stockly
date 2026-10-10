@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Calendar, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Layers } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -30,7 +30,7 @@ import {
   weightedAverageCosts,
 } from "@/services/calculations";
 import { useCurrency, useStockStore } from "@/store/stockStore";
-import { formatMoney } from "@/utils/format";
+import { formatMoney, todayISO } from "@/utils/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/reports")({
@@ -58,6 +58,31 @@ function ReportsPage() {
 
   const [draft, setDraft] = useState({ start: "", end: "" });
   const [range, setRange] = useState({ start: "", end: "" });
+  const [preset, setPreset] = useState<"ALL" | "TODAY" | "WEEK" | "MONTH">("ALL");
+
+  const setRangePreset = (p: "ALL" | "TODAY" | "WEEK" | "MONTH") => {
+    setPreset(p);
+    const today = new Date();
+    const todayStr = todayISO();
+
+    if (p === "ALL") {
+      setDraft({ start: "", end: "" });
+      setRange({ start: "", end: "" });
+    } else if (p === "TODAY") {
+      setDraft({ start: todayStr, end: todayStr });
+      setRange({ start: todayStr, end: todayStr });
+    } else if (p === "WEEK") {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 7);
+      const startStr = d.toISOString().slice(0, 10);
+      setDraft({ start: startStr, end: todayStr });
+      setRange({ start: startStr, end: todayStr });
+    } else if (p === "MONTH") {
+      const startStr = `${todayStr.slice(0, 7)}-01`;
+      setDraft({ start: startStr, end: todayStr });
+      setRange({ start: startStr, end: todayStr });
+    }
+  };
 
   const data = useMemo(() => {
     const f = <T extends { date: string }>(rows: T[]) =>
@@ -118,12 +143,47 @@ function ReportsPage() {
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [data, avg]);
 
+  const profitPositive = metrics.net_profit >= 0;
+
   const kpis = [
-    { label: "Net profit", value: metrics.net_profit, tone: true },
-    { label: "Gross profit", value: metrics.gross_profit, tone: true },
-    { label: "Sales revenue", value: metrics.total_sales_revenue },
-    { label: "Cost of goods sold", value: cogs },
-    { label: "Operational expenses", value: metrics.total_expenses },
+    {
+      label: "Net Profit",
+      value: metrics.net_profit,
+      tone: true,
+      color: profitPositive ? "border-success/30 bg-success/5 text-success" : "border-destructive/30 bg-destructive/5 text-destructive",
+      sub: "After COGS & expenses",
+    },
+    {
+      label: "Gross Profit",
+      value: metrics.gross_profit,
+      tone: true,
+      color: "border-border/80 bg-elevated/60 text-foreground",
+      sub: "Revenue minus stock costs",
+    },
+    {
+      label: "Sales Revenue",
+      value: metrics.total_sales_revenue,
+      color: "border-blue-500/30 bg-blue-500/5 text-blue-400",
+      sub: `${data.sales.length} sale transactions`,
+    },
+    {
+      label: "Cost of Goods Sold (COGS)",
+      value: cogs,
+      color: "border-border/80 bg-elevated/60 text-foreground",
+      sub: "Weighted average stock cost",
+    },
+    {
+      label: "Operating Expenses",
+      value: metrics.total_expenses,
+      color: "border-amber-500/30 bg-amber-500/5 text-amber-400",
+      sub: `${data.expenses.length} expense entries`,
+    },
+    {
+      label: "Total Purchases",
+      value: data.purchases.reduce((t, p) => t + p.total_cost, 0),
+      color: "border-purple-500/30 bg-purple-500/5 text-purple-400",
+      sub: `${data.purchases.length} supplier orders`,
+    },
   ];
 
   const chartAxis = {
@@ -132,19 +192,80 @@ function ReportsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Reports" subtitle="Financial performance for any period." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Financial Reports"
+        subtitle="Live income statement, revenue analysis, and profit trends."
+      />
 
-      <Panel>
-        <SectionTitle>Date range</SectionTitle>
+      {/* Date Range & Quick Presets Panel */}
+      <Panel className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <SectionTitle left={<Calendar className="size-4" />}>Report Date Filter</SectionTitle>
+
+          {/* Quick preset chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setRangePreset("ALL")}
+              className={cn(
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                preset === "ALL"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              All Time
+            </button>
+            <button
+              type="button"
+              onClick={() => setRangePreset("TODAY")}
+              className={cn(
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                preset === "TODAY"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setRangePreset("WEEK")}
+              className={cn(
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                preset === "WEEK"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              Last 7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => setRangePreset("MONTH")}
+              className={cn(
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                preset === "MONTH"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              This Month
+            </button>
+          </div>
+        </div>
+
+        {/* Custom date range form */}
         <form
-          className="mt-4 grid gap-3 sm:grid-cols-4"
+          className="grid gap-3 sm:grid-cols-4 pt-1"
           onSubmit={(e) => {
             e.preventDefault();
+            setPreset("ALL");
             setRange(draft);
           }}
         >
-          <Field label="Start date" htmlFor="rep-start">
+          <Field label="Custom Start Date" htmlFor="rep-start">
             <input
               id="rep-start"
               type="date"
@@ -153,7 +274,7 @@ function ReportsPage() {
               onChange={(e) => setDraft((d) => ({ ...d, start: e.target.value }))}
             />
           </Field>
-          <Field label="End date" htmlFor="rep-end">
+          <Field label="Custom End Date" htmlFor="rep-end">
             <input
               id="rep-end"
               type="date"
@@ -164,72 +285,70 @@ function ReportsPage() {
           </Field>
           <div className="flex items-end gap-2 sm:col-span-2">
             <button type="submit" className={btnPrimary}>
-              Apply
+              Apply Filter
             </button>
             <button
               type="button"
               className={btnOutline}
-              onClick={() => {
-                setDraft({ start: "", end: "" });
-                setRange({ start: "", end: "" });
-              }}
+              onClick={() => setRangePreset("ALL")}
             >
-              All time
+              Reset
             </button>
           </div>
         </form>
       </Panel>
 
+      {/* KPI Financial Cards */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {kpis.map((k) => (
-          <div key={k.label} className="surface p-4">
-            <p className="label-xs">{k.label}</p>
-            <p
-              className={cn(
-                "num mt-2 text-xl font-semibold",
-                k.tone && (k.value >= 0 ? "text-success" : "text-destructive"),
-              )}
-            >
+          <div
+            key={k.label}
+            className={cn(
+              "rounded-2xl border p-4.5 transition-all shadow-xs",
+              k.color,
+            )}
+          >
+            <p className="label-xs text-muted-foreground font-semibold">{k.label}</p>
+            <p className="num mt-2 text-2xl font-bold tracking-tight">
               {formatMoney(k.value, currency)}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">{k.sub}</p>
           </div>
         ))}
-        <div className="surface p-4">
-          <p className="label-xs">Transactions</p>
-          <p className="num mt-2 text-xl font-semibold">{transactionCount}</p>
-        </div>
       </div>
 
       {series.length === 0 ? (
         <Panel>
           <EmptyState
             icon={BarChart3}
-            title="Nothing to report yet"
-            description="Record purchases, sales or expenses and your charts will build automatically."
+            title="No financial records in selected period"
+            description="Adjust the date filter or record transactions to generate live financial charts."
           />
         </Panel>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
-          <Panel className="space-y-3">
-            <SectionTitle>Profit over time</SectionTitle>
-            <div className="h-64 w-full">
+          {/* Profit Over Time Chart */}
+          <Panel className="space-y-3.5">
+            <SectionTitle>Net Profit Trend</SectionTitle>
+            <div className="h-72 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <AreaChart data={series} margin={{ top: 8, right: 8, left: -14, bottom: 0 }}>
                   <defs>
                     <linearGradient id="profitFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.45} />
                       <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.6} />
                   <XAxis dataKey="date" tick={chartAxis} tickLine={false} axisLine={false} />
                   <YAxis tick={chartAxis} tickLine={false} axisLine={false} width={64} />
                   <Tooltip
                     contentStyle={{
                       background: "var(--color-popover)",
                       border: "1px solid var(--color-border)",
-                      borderRadius: 12,
+                      borderRadius: 16,
                       fontSize: 12,
+                      boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
                     }}
                   />
                   <Area
@@ -238,28 +357,30 @@ function ReportsPage() {
                     name="Profit"
                     stroke="var(--color-chart-1)"
                     fill="url(#profitFill)"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </Panel>
 
-          <Panel className="space-y-3">
-            <SectionTitle>Sales vs purchases vs expenses</SectionTitle>
-            <div className="h-64 w-full">
+          {/* Sales vs Purchases vs Expenses */}
+          <Panel className="space-y-3.5">
+            <SectionTitle>Revenue, Inventory Cost & Expenses</SectionTitle>
+            <div className="h-72 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <BarChart data={series} margin={{ top: 8, right: 8, left: -14, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.6} />
                   <XAxis dataKey="date" tick={chartAxis} tickLine={false} axisLine={false} />
                   <YAxis tick={chartAxis} tickLine={false} axisLine={false} width={64} />
                   <Tooltip
-                    cursor={{ fill: "var(--color-accent)", opacity: 0.3 }}
+                    cursor={{ fill: "var(--color-accent)", opacity: 0.2 }}
                     contentStyle={{
                       background: "var(--color-popover)",
                       border: "1px solid var(--color-border)",
-                      borderRadius: 12,
+                      borderRadius: 16,
                       fontSize: 12,
+                      boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -267,19 +388,19 @@ function ReportsPage() {
                     dataKey="sales"
                     name="Sales"
                     fill="var(--color-chart-1)"
-                    radius={[4, 4, 0, 0]}
+                    radius={[6, 6, 0, 0]}
                   />
                   <Bar
                     dataKey="purchases"
                     name="Purchases"
                     fill="var(--color-chart-2)"
-                    radius={[4, 4, 0, 0]}
+                    radius={[6, 6, 0, 0]}
                   />
                   <Bar
                     dataKey="expenses"
                     name="Expenses"
                     fill="var(--color-chart-3)"
-                    radius={[4, 4, 0, 0]}
+                    radius={[6, 6, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>

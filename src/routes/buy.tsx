@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { Eye, Pencil, ShoppingCart, Trash2, ArrowDownLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -21,18 +21,18 @@ import { useListPaging } from "@/hooks/use-list-paging";
 import { useDebounced } from "@/hooks/useDebounced";
 import { useCurrency, useInventory, useIsReadOnly, useStockStore } from "@/store/stockStore";
 import { formatDate, formatMoney, formatUnits, todayISO, toNumber } from "@/utils/format";
-
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/buy")({
   head: () => ({
     meta: [
-      { title: "Buy Stock â€” Stockly" },
+      { title: "Buy Stock — Stockly" },
       {
         name: "description",
         content:
           "Record stock purchases with supplier, quantity and unit cost, and review history.",
       },
-      { property: "og:title", content: "Buy Stock â€” Stockly" },
+      { property: "og:title", content: "Buy Stock — Stockly" },
       { property: "og:description", content: "Record and manage your stock purchases." },
     ],
   }),
@@ -77,6 +77,11 @@ function BuyPage() {
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: "" }));
+  };
+
+  const addQty = (amount: number) => {
+    const current = toNumber(form.quantity);
+    set("quantity", String(current + amount));
   };
 
   const validate = () => {
@@ -155,7 +160,6 @@ function BuyPage() {
     toast.success("Purchase deleted");
   };
 
-
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
     return purchases
@@ -169,41 +173,47 @@ function BuyPage() {
       .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at));
   }, [purchases, debounced]);
 
-  // Rows are sorted newest-first, so a freshly saved purchase is always at the
-  // top of page one without needing an extra reset.
   const { visible, remaining, loadMore } = useListPaging(filtered, [debounced]);
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Buy Stock" subtitle="Record purchases and keep your inventory accurate." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Buy Stock"
+        subtitle="Record incoming inventory shipments, unit costs, and supplier info."
+      />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Purchase" : "Record New Purchase"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Purchase Record" : "Record Incoming Stock"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
               <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying purchases is disabled.</span>
             </div>
           )}
-          <Field label="Stock model name" htmlFor="buy-model" required error={errors.model}>
+
+          {/* Model name with datalist */}
+          <Field label="Stock Model Name" htmlFor="buy-model" required error={errors.model}>
             <input
               id="buy-model"
               list="buy-models"
               className={inputClass}
               value={form.model}
               onChange={(e) => set("model", e.target.value)}
-              placeholder="Select existing or type a new model"
+              placeholder="Select existing or type a new model name"
               disabled={isReadOnly}
             />
             <datalist id="buy-models">
               {inventory.map((i) => (
-                <option key={i.model} value={i.model} />
+                <option key={i.model} value={i.model}>
+                  {i.model} ({formatUnits(i.remaining)} currently in stock)
+                </option>
               ))}
             </datalist>
           </Field>
 
-          <Field label="Date" htmlFor="buy-date" required error={errors.date}>
+          {/* Date */}
+          <Field label="Purchase Date" htmlFor="buy-date" required error={errors.date}>
             <input
               id="buy-date"
               type="date"
@@ -214,7 +224,38 @@ function BuyPage() {
             />
           </Field>
 
-          <Field label="Quantity" htmlFor="buy-qty" required error={errors.quantity}>
+          {/* Quantity with quick chips */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="buy-qty" className="label-xs block text-muted-foreground font-semibold">
+                Quantity <span className="text-destructive font-bold">*</span>
+              </label>
+              {!isReadOnly && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => addQty(5)}
+                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                  >
+                    +5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addQty(10)}
+                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                  >
+                    +10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addQty(50)}
+                    className="rounded-md border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400 hover:bg-sky-500/20 active:scale-95"
+                  >
+                    +50
+                  </button>
+                </div>
+              )}
+            </div>
             <input
               id="buy-qty"
               type="number"
@@ -224,13 +265,15 @@ function BuyPage() {
               className={inputClass}
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
-              placeholder="0"
+              placeholder="Number of units"
               disabled={isReadOnly}
             />
-          </Field>
+            {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
+          </div>
 
+          {/* Buying price */}
           <Field
-            label={`Buying price / unit (${currency})`}
+            label={`Buying Price / Unit (${currency})`}
             htmlFor="buy-price"
             required
             error={errors.buying_price}
@@ -249,68 +292,88 @@ function BuyPage() {
             />
           </Field>
 
-          <Field label="Supplier" htmlFor="buy-supplier">
+          {/* Supplier */}
+          <Field label="Supplier / Vendor" htmlFor="buy-supplier">
             <input
               id="buy-supplier"
               className={inputClass}
               value={form.supplier}
               onChange={(e) => set("supplier", e.target.value)}
-              placeholder="Optional"
+              placeholder="Vendor name or wholesale market"
               disabled={isReadOnly}
             />
           </Field>
 
-          <Field label="Remarks" htmlFor="buy-remarks">
+          {/* Remarks */}
+          <Field label="Remarks / Invoice #" htmlFor="buy-remarks">
             <input
               id="buy-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="Optional"
+              placeholder="Bill number, batch note, etc."
               disabled={isReadOnly}
             />
           </Field>
 
-          <div className="rounded-lg border border-border bg-elevated p-3 sm:col-span-2">
-            <p className="label-xs">Total cost</p>
-            <p className="num mt-1 text-xl font-semibold">{formatMoney(totalCost, currency)}</p>
+          {/* Live Investment Summary */}
+          <div className="rounded-2xl border border-border/80 bg-elevated/70 p-4 sm:col-span-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="label-xs text-muted-foreground font-semibold">Total Purchase Cost</p>
+                <p className="num mt-1 text-2xl font-bold text-foreground">
+                  {formatMoney(totalCost, currency)}
+                </p>
+              </div>
+              {toNumber(form.quantity) > 0 && toNumber(form.buying_price) > 0 && (
+                <div className="text-right text-xs text-muted-foreground">
+                  <p>{formatUnits(toNumber(form.quantity))} units</p>
+                  <p>@ {formatMoney(toNumber(form.buying_price), currency)} each</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row pt-1">
             <button
               type="submit"
-              className={btnPrimary}
+              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
               title={isReadOnly ? "Viewer mode: Read-only access" : undefined}
             >
-              {isReadOnly ? "Read-Only (Viewer Mode)" : editingId ? "Update purchase" : "Save purchase"}
+              <ShoppingCart className="size-4" aria-hidden />
+              {isReadOnly ? "Read-Only (Viewer Mode)" : editingId ? "Update Purchase Record" : "Save Stock Purchase"}
             </button>
-            {editingId ? (
+            {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>
                 Cancel
               </button>
-            ) : null}
+            )}
           </div>
         </form>
       </Panel>
 
+      {/* Purchase History */}
       <Panel className="space-y-4">
         <SectionTitle
-          right={<span className="num text-sm text-muted-foreground">{filtered.length}</span>}
+          right={<span className="num text-xs font-semibold px-2 py-0.5 rounded-full bg-elevated text-muted-foreground">{filtered.length} records</span>}
         >
-          Purchase history
+          Purchase History
         </SectionTitle>
+
         <SearchField
           label="Search purchases"
           value={search}
           onChange={setSearch}
           placeholder="Search by model, supplier or record ID"
         />
+
         {filtered.length === 0 ? (
           <EmptyState
             icon={ShoppingCart}
-            title="No purchases yet"
-            description="Start by recording your first purchase."
+            title="No purchases recorded yet"
+            description="Incoming inventory records will appear here."
           />
         ) : (
           <>
@@ -322,20 +385,30 @@ function BuyPage() {
             />
             <ul className="space-y-3">
               {visible.map((p) => (
-                <li key={p.record_id} className="rounded-xl border border-border bg-elevated p-3.5">
+                <li
+                  key={p.record_id}
+                  className="rounded-2xl border border-border/70 bg-elevated/60 p-4 transition-all hover:bg-elevated/90 shadow-xs"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{p.model}</p>
-                      <p className="num text-xs text-muted-foreground">
-                        {formatUnits(p.quantity)} units Â· {p.record_id} Â· {formatDate(p.date)}
+                      <p className="truncate text-sm font-bold text-foreground">{p.model}</p>
+                      <p className="num text-xs text-muted-foreground mt-0.5">
+                        {formatUnits(p.quantity)} units · {p.record_id} · {formatDate(p.date)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="num text-sm font-semibold">
-                        {formatMoney(p.total_cost, currency)}
-                      </span>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="num text-sm font-bold text-foreground">
+                          {formatMoney(p.total_cost, currency)}
+                        </span>
+                        <p className="num text-xs text-muted-foreground">
+                          {formatMoney(p.buying_price, currency)} / unit
+                        </p>
+                      </div>
+
                       {!isReadOnly && (
-                        <>
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             className={btnIcon}
@@ -346,23 +419,24 @@ function BuyPage() {
                           </button>
                           <button
                             type="button"
-                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            className={`${btnIcon} text-destructive hover:text-destructive hover:bg-destructive/10`}
                             aria-label={`Delete purchase ${p.record_id}`}
                             onClick={() => setPendingDelete(p.record_id)}
                           >
                             <Trash2 className="size-4" aria-hidden />
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 border-t border-border pt-3">
+
+                  <div className="mt-3 border-t border-border/60 pt-3">
                     <MetaRow
                       items={[
-                        { label: "Buy price", value: formatMoney(p.buying_price, currency) },
-                        { label: "Supplier", value: p.supplier || "â€”" },
-                        { label: "Remarks", value: p.remarks || "â€”" },
-                        { label: "Added by", value: p.created_by || "â€”" },
+                        { label: "Unit Cost", value: formatMoney(p.buying_price, currency) },
+                        { label: "Supplier", value: p.supplier || "—" },
+                        { label: "Remarks", value: p.remarks || "—" },
+                        { label: "Logged By", value: p.created_by || "—" },
                       ]}
                     />
                   </div>

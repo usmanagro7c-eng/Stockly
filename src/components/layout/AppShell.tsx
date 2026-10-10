@@ -1,35 +1,61 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CloudOff, Eye, MoreHorizontal, X } from "lucide-react";
+import {
+  Cloud,
+  CloudOff,
+  Eye,
+  FileSpreadsheet,
+  Layers,
+  MoreHorizontal,
+  RefreshCw,
+  Sparkles,
+  User,
+  X,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { moreNav, primaryNav } from "./nav-items";
+import { analyticsNav, primaryNav, systemNav } from "./nav-items";
 import { useStockStore } from "@/store/stockStore";
 import { useAutoSync } from "@/hooks/use-auto-sync";
+import { toast } from "sonner";
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-        <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+    <Link to="/" className="flex items-center gap-3 group transition-transform active:scale-95">
+      <div className="relative flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground shadow-md shadow-primary/25 ring-1 ring-white/20 transition-all group-hover:shadow-primary/40">
+        <svg viewBox="0 0 24 24" className="size-5.5" aria-hidden>
           <path
             fill="currentColor"
             d="M12 2 4 7v10l8 5 8-5V7l-8-5Zm0 2.3L18 8v1.1l-6 3.4-6-3.4V8l6-3.7Z"
           />
           <path fill="currentColor" d="m6 11.2 5 2.8v5.3l-5-3.1v-5Zm12 0v5l-5 3.1V14l5-2.8Z" />
         </svg>
-      </span>
-      {!compact && <span className="text-lg font-semibold tracking-tight">Stockly</span>}
-    </div>
+      </div>
+      {!compact && (
+        <div className="flex flex-col">
+          <span className="text-lg font-bold tracking-tight text-foreground flex items-center gap-1.5">
+            Stockly
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.2 rounded-md bg-primary/15 text-primary border border-primary/20">
+              Pro
+            </span>
+          </span>
+          <span className="text-[11px] text-muted-foreground/80 font-medium">Inventory & Profit</span>
+        </div>
+      )}
+    </Link>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [online, setOnline] = useState(typeof navigator === "undefined" || navigator.onLine);
+  const [syncing, setSyncing] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const settings = useStockStore((s) => s.settings);
   const sheetRole = useStockStore((s) => s.sheetRole);
-  const isMoreRoute = moreNav.some((i) => pathname.startsWith(i.to));
+  const syncToSheets = useStockStore((s) => s.syncToGoogleSheets);
+  const syncFromSheets = useStockStore((s) => s.syncFromGoogleSheets);
 
   useAutoSync();
 
@@ -45,162 +71,411 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const showBanners = !online || sheetRole === "read";
+  const handleManualSync = async () => {
+    if (!settings.linked_file_name) {
+      toast.info("Link a Google Sheet in Settings to sync data");
+      return;
+    }
+    setSyncing(true);
+    try {
+      if (sheetRole === "read") {
+        await syncFromSheets(true);
+        toast.success("Pulled latest data from Google Sheet");
+      } else {
+        await syncToSheets(true);
+        toast.success("Synced data with Google Sheet");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
+  const isMoreRoute = [...analyticsNav, ...systemNav].some((i) => pathname.startsWith(i.to));
   const activeCls = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
 
-  return (
-    <div className="min-h-screen bg-background">
-      {showBanners ? (
-        <div className="sticky top-0 z-40 space-y-1 px-3 pt-2 lg:pl-64">
-          {!online ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-elevated px-3 py-2 text-xs font-medium text-muted-foreground">
-              <CloudOff className="size-4 shrink-0 text-primary" aria-hidden />
-              You're offline — changes are saved on this device and will sync when you reconnect.
-            </div>
-          ) : null}
-          {sheetRole === "read" ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-elevated px-3 py-2 text-xs font-medium text-muted-foreground">
-              <Eye className="size-4 shrink-0 text-primary" aria-hidden />
-              Read-only access to this Google Sheet — new entries are not saved to the sheet.
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+  const showBanners = !online || sheetRole === "read";
 
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 lg:flex">
+  return (
+    <div className="min-h-screen bg-background flex flex-col selection:bg-primary/25 selection:text-primary">
+      {/* Offline / Read-Only Top Status Banner */}
+      {showBanners && (
+        <div className="sticky top-0 z-40 px-3 pt-2 lg:pl-68 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+          {!online && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-400 backdrop-blur-md shadow-sm">
+              <CloudOff className="size-4 shrink-0 text-amber-400" aria-hidden />
+              <span>Offline Mode: Changes are saved safely on this device and will sync automatically once reconnected.</span>
+            </div>
+          )}
+          {sheetRole === "read" && online && (
+            <div className="flex items-center gap-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3.5 py-2 text-xs font-medium text-sky-400 backdrop-blur-md shadow-sm">
+              <Eye className="size-4 shrink-0 text-sky-400" aria-hidden />
+              <span>Viewer Mode: Connected with read-only permissions. You can view all records and pull fresh data.</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl px-4.5 py-5.5 lg:flex">
         <Brand />
-        <nav className="mt-7 flex flex-1 flex-col gap-1" aria-label="Main">
-          {primaryNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
-                activeCls(item.to)
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-              )}
-            >
-              <item.icon className="size-4.5" aria-hidden />
-              {item.label}
-            </Link>
-          ))}
-          <p className="label-xs mt-5 px-3">More</p>
-          {moreNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
-                activeCls(item.to)
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-              )}
-            >
-              <item.icon className="size-4.5" aria-hidden />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-3">
-          <p className="truncate text-sm font-medium">{settings.user_name || "Shopkeeper"}</p>
-          <p className="num truncate text-xs text-muted-foreground">{settings.device_id}</p>
+
+        {/* Navigation Sections */}
+        <div className="mt-8 flex flex-1 flex-col gap-6 overflow-y-auto pr-1">
+          {/* Operations */}
+          <div>
+            <p className="label-xs px-3 text-muted-foreground/60 mb-2">Operations</p>
+            <nav className="flex flex-col gap-1" aria-label="Operations">
+              {primaryNav.map((item) => {
+                const active = activeCls(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "group relative flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-all duration-150",
+                      active
+                        ? "bg-primary/15 text-primary font-semibold shadow-sm"
+                        : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "size-4.5 transition-colors",
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="truncate">{item.label}</span>
+                    {active && (
+                      <span className="absolute right-2.5 size-1.5 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Analytics & History */}
+          <div>
+            <p className="label-xs px-3 text-muted-foreground/60 mb-2">Analytics & Audit</p>
+            <nav className="flex flex-col gap-1" aria-label="Analytics">
+              {analyticsNav.map((item) => {
+                const active = activeCls(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "group relative flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-all duration-150",
+                      active
+                        ? "bg-primary/15 text-primary font-semibold shadow-sm"
+                        : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "size-4.5 transition-colors",
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="truncate">{item.label}</span>
+                    {active && (
+                      <span className="absolute right-2.5 size-1.5 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* System */}
+          <div>
+            <p className="label-xs px-3 text-muted-foreground/60 mb-2">System</p>
+            <nav className="flex flex-col gap-1" aria-label="System">
+              {systemNav.map((item) => {
+                const active = activeCls(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "group relative flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-medium transition-all duration-150",
+                      active
+                        ? "bg-primary/15 text-primary font-semibold shadow-sm"
+                        : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "size-4.5 transition-colors",
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="truncate">{item.label}</span>
+                    {active && (
+                      <span className="absolute right-2.5 size-1.5 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        {/* Desktop Sidebar Bottom Card (Google Sheets status & Store Info) */}
+        <div className="mt-auto pt-4 flex flex-col gap-2.5">
+          {/* Quick Sync Pill */}
+          <div className="rounded-xl border border-border/80 bg-sidebar-accent/50 p-2.5 flex items-center justify-between gap-2 shadow-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={cn(
+                "size-2 rounded-full shrink-0",
+                settings.linked_file_name
+                  ? (sheetRole === "read" ? "bg-sky-400" : "bg-emerald-400 animate-pulse")
+                  : "bg-muted-foreground/50"
+              )} />
+              <div className="min-w-0 truncate">
+                <p className="text-xs font-semibold truncate text-foreground">
+                  {settings.linked_file_name ? "Google Sheets" : "Not Linked"}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {settings.linked_file_name
+                    ? (sheetRole === "read" ? "Viewer Access" : "Editor Synced")
+                    : "Tap to connect"}
+                </p>
+              </div>
+            </div>
+            {settings.linked_file_name ? (
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={syncing}
+                title="Sync now"
+                aria-label="Sync Google Sheets"
+                className="flex size-7.5 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-elevated/70 text-muted-foreground hover:bg-accent hover:text-foreground active:scale-90 transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={cn("size-3.5", syncing && "animate-spin text-primary")} />
+              </button>
+            ) : (
+              <Link
+                to="/settings"
+                className="text-[11px] font-semibold text-primary hover:underline shrink-0"
+              >
+                Link
+              </Link>
+            )}
+          </div>
+
+          {/* User profile card */}
+          <Link
+            to="/settings"
+            className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-2.5 transition-all hover:bg-sidebar-accent/70 group"
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary font-bold text-xs">
+              {(settings.user_name || "S").slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1 truncate">
+              <p className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                {settings.user_name || "Shopkeeper"}
+              </p>
+              <p className="num truncate text-[11px] text-muted-foreground/80">
+                {settings.device_id || "Stockly Device"}
+              </p>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="pad-safe-top sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur lg:hidden">
+      {/* Mobile Top Header (Optimized for Android APK & Mobile Web) */}
+      <header className="pad-safe-top sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-xl lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Brand />
-          <div className="text-right">
-            <p className="truncate text-xs font-medium">{settings.user_name || "Shopkeeper"}</p>
-            <p className="num truncate text-[11px] text-muted-foreground">{settings.device_id}</p>
+
+          {/* Right Mobile Quick Status & Profile */}
+          <div className="flex items-center gap-2">
+            {/* Quick sync button / pill */}
+            {settings.linked_file_name && (
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={syncing}
+                aria-label="Sync with Google Sheets"
+                className="flex items-center gap-1.5 rounded-full border border-border/80 bg-elevated/80 px-2.5 py-1 text-xs font-medium text-foreground active:scale-95 transition-all"
+              >
+                <span className={cn(
+                  "size-1.5 rounded-full shrink-0",
+                  sheetRole === "read" ? "bg-sky-400" : "bg-emerald-400 animate-pulse"
+                )} />
+                <RefreshCw className={cn("size-3", syncing && "animate-spin text-primary")} />
+                <span className="hidden xs:inline text-[11px]">{syncing ? "Syncing..." : "Sync"}</span>
+              </button>
+            )}
+
+            {/* Profile Avatar Shortcut */}
+            <Link
+              to="/settings"
+              aria-label="Open settings"
+              className="flex size-9 items-center justify-center rounded-xl border border-border/80 bg-elevated/90 text-primary font-bold text-xs shadow-xs active:scale-90 transition-transform"
+            >
+              {(settings.user_name || "S").slice(0, 2).toUpperCase()}
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="lg:pl-64">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 lg:pb-10">{children}</div>
+      {/* Main Content Area */}
+      <main className="flex-1 lg:pl-68">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-12">
+          {children}
+        </div>
       </main>
 
-      {/* Mobile bottom navigation */}
+      {/* Mobile Bottom Navigation (Ergonomic 5-tab dock for APK & Mobile Web) */}
       <nav
-        aria-label="Primary"
-        className="pad-safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur lg:hidden"
+        aria-label="Mobile Navigation"
+        className="pad-safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-card/90 backdrop-blur-xl lg:hidden shadow-lg select-none"
       >
-        <div className="grid grid-cols-6">
-          {primaryNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium",
-                activeCls(item.to) ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              <item.icon className="size-5" aria-hidden />
-              {item.label}
-            </Link>
-          ))}
+        <div className="grid grid-cols-5 h-16">
+          {primaryNav.map((item) => {
+            const active = activeCls(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-all duration-150 active:scale-90",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {active && (
+                  <span className="absolute top-1 size-1 rounded-full bg-primary" />
+                )}
+                <item.icon className={cn("size-5 transition-transform", active && "scale-110")} aria-hidden />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          {/* 5th Tab: "More" Menu Button */}
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            aria-label="More sections"
+            aria-label="More navigation and tools"
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium",
-              isMoreRoute ? "text-primary" : "text-muted-foreground",
+              "relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-all duration-150 active:scale-90",
+              isMoreRoute ? "text-primary" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <MoreHorizontal className="size-5" aria-hidden />
-            More
+            {isMoreRoute && (
+              <span className="absolute top-1 size-1 rounded-full bg-primary" />
+            )}
+            <MoreHorizontal className={cn("size-5 transition-transform", isMoreRoute && "scale-110")} aria-hidden />
+            <span>More</span>
           </button>
         </div>
       </nav>
 
-      {moreOpen ? (
+      {/* Mobile "More" Sheet Modal (Bottom Sheet native feeling) */}
+      {moreOpen && (
         <div
           className="fixed inset-0 z-50 lg:hidden"
           role="dialog"
           aria-modal="true"
-          aria-label="More"
+          aria-label="Navigation Menu"
         >
-          <button
-            type="button"
-            aria-label="Close menu"
-            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-md transition-opacity duration-200"
             onClick={() => setMoreOpen(false)}
           />
-          <div className="pad-safe-bottom absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-4 shadow-pop">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-base font-semibold">More</h2>
+
+          {/* Bottom Sheet Card */}
+          <div className="pad-safe-bottom absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-border/80 bg-card/95 p-5 shadow-pop backdrop-blur-2xl animate-in slide-in-from-bottom duration-250">
+            {/* Sheet Handle */}
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border/80" />
+
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-foreground">Navigation & Tools</h2>
+                <p className="text-xs text-muted-foreground">Quick access to reports, logs & store settings</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="flex size-11 items-center justify-center rounded-lg text-muted-foreground"
-                aria-label="Close"
+                className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-elevated/70 text-muted-foreground hover:text-foreground active:scale-90 transition-all"
+                aria-label="Close menu"
               >
-                <X className="size-5" aria-hidden />
+                <X className="size-4" aria-hidden />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 pb-2">
-              {moreNav.map((item) => (
+
+            {/* Google Sheets Quick Card inside More Drawer */}
+            <div className="mb-4 rounded-2xl border border-border/80 bg-elevated/50 p-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                  <FileSpreadsheet className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {settings.linked_file_name ? "Google Sheets Connected" : "Google Sheets Backup"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {settings.linked_file_name
+                      ? (sheetRole === "read" ? "Viewer mode active" : "Auto-sync enabled")
+                      : "Link your Google Sheet"}
+                  </p>
+                </div>
+              </div>
+
+              {settings.linked_file_name ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleManualSync();
+                  }}
+                  disabled={syncing}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary/15 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary active:scale-95 transition-all"
+                >
+                  <RefreshCw className={cn("size-3", syncing && "animate-spin")} />
+                  <span>{syncing ? "Syncing..." : "Sync Now"}</span>
+                </button>
+              ) : (
+                <Link
+                  to="/settings"
+                  onClick={() => setMoreOpen(false)}
+                  className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground active:scale-95 transition-all"
+                >
+                  Connect
+                </Link>
+              )}
+            </div>
+
+            {/* Navigation Cards Grid */}
+            <div className="grid grid-cols-2 gap-2.5 pb-2">
+              {[...analyticsNav, ...systemNav].map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={() => setMoreOpen(false)}
-                  className="flex min-h-14 items-center gap-3 rounded-xl border border-border bg-elevated px-3 text-sm font-medium"
+                  className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/60 p-3.5 text-left transition-all hover:bg-accent active:scale-95"
                 >
-                  <item.icon className="size-5 text-primary" aria-hidden />
-                  {item.label}
+                  <div className={cn("flex size-9 items-center justify-center rounded-xl bg-gradient-to-br shadow-xs", item.color || "from-primary/20 to-primary/5 text-primary")}>
+                    <item.icon className="size-4.5" aria-hidden />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-[11px] text-muted-foreground/80 leading-tight">{item.description}</p>
+                  </div>
                 </Link>
               ))}
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

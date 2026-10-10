@@ -1,5 +1,5 @@
 // Stockly Service Worker — offline-first, app shell caching
-const CACHE_NAME = 'stockly-v6';
+const CACHE_NAME = 'stockly-v7';
 const MAX_CACHED_ENTRIES = 60;
 const PRECACHE_URLS = [
   '/',

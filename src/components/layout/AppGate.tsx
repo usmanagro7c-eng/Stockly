@@ -1,20 +1,15 @@
-import { Delete, Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { Delete, Loader2, LockKeyhole, RefreshCw, Sparkles, Store } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useStockStore } from "@/store/stockStore";
 import { generateDeviceId } from "@/services/ids";
 import { verifyPin } from "@/services/security";
-import { inputClass } from "@/components/common/ui-bits";
+import { inputClass, btnPrimary } from "@/components/common/ui-bits";
 import { cn } from "@/lib/utils";
 
 /**
  * Boots the offline database, runs first-launch setup and the PIN lock
  * screen before rendering the application.
- */
-/**
- * A blocked IndexedDB request never settles, so waiting on `init()` alone could
- * leave the app on its spinner forever with no way out. Give it a deadline and
- * offer a retry.
  */
 const INIT_TIMEOUT_MS = 12_000;
 
@@ -57,7 +52,7 @@ export function AppGate({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={retry}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground active:scale-95 transition-all"
           >
             <RefreshCw className="size-4" aria-hidden />
             Try again
@@ -66,8 +61,11 @@ export function AppGate({ children }: { children: ReactNode }) {
       );
     }
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-primary" aria-label="Loading Stockly" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        <div className="relative flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-emerald-400 text-primary-foreground shadow-lg shadow-primary/30">
+          <Loader2 className="size-6 animate-spin text-primary-foreground" aria-label="Loading Stockly" />
+        </div>
+        <p className="text-xs font-semibold text-muted-foreground">Loading Stockly...</p>
       </div>
     );
   }
@@ -97,14 +95,18 @@ function SetupScreen() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <form onSubmit={submit} className="surface w-full max-w-md p-6">
-        <h1 className="text-xl font-semibold tracking-tight">Set up Stockly</h1>
+      <form onSubmit={submit} className="surface w-full max-w-md p-6 sm:p-8 shadow-pop border-border/80">
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary mb-4 ring-1 ring-primary/30">
+          <Store className="size-6" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Set up Stockly</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your data stays on this device. Tell us who is using it.
+          Welcome! Offline-first inventory and profit manager. All data is saved on this device.
         </p>
-        <div className="mt-5 space-y-1.5">
-          <label htmlFor="setup-name" className="label-xs block">
-            Your name <span className="text-destructive">*</span>
+
+        <div className="mt-6 space-y-1.5">
+          <label htmlFor="setup-name" className="label-xs block font-semibold text-muted-foreground">
+            Your Name / Store Name <span className="text-destructive font-bold">*</span>
           </label>
           <input
             id="setup-name"
@@ -116,23 +118,25 @@ function SetupScreen() {
               setName(e.target.value);
               setError("");
             }}
-            placeholder="e.g. Usman"
+            placeholder="e.g. Usman Amjad"
           />
-          {error ? (
+          {error && (
             <p className="text-xs font-medium text-destructive" role="alert">
               {error}
             </p>
-          ) : null}
+          )}
         </div>
-        <div className="mt-4 rounded-lg border border-border bg-elevated p-3">
-          <p className="label-xs">Device ID</p>
-          <p className="num mt-1 text-sm font-medium">{id}</p>
+
+        <div className="mt-4 rounded-xl border border-border/70 bg-elevated/70 p-3">
+          <p className="label-xs text-muted-foreground">Assigned Device ID</p>
+          <p className="num mt-1 text-xs font-mono font-semibold text-foreground truncate">{id}</p>
         </div>
+
         <button
           type="submit"
-          className="mt-6 min-h-12 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="mt-6 min-h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 active:scale-98"
         >
-          Continue
+          Get Started
         </button>
       </form>
     </div>
@@ -155,7 +159,6 @@ function PinLockScreen() {
     }
   };
 
-  // Clear the error shake after a beat; cleaned up on unmount.
   useEffect(() => {
     if (!error) return;
     const timer = setTimeout(() => setError(false), 600);
@@ -170,41 +173,44 @@ function PinLockScreen() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hash]);
 
   const press = (digit: string) => setPin((p) => (p.length < 6 ? p + digit : p));
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10">
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
-        <LockKeyhole className="size-6" aria-hidden />
+    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-10 select-none">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30 shadow-md">
+        <LockKeyhole className="size-7" aria-hidden />
       </span>
-      <h1 className="mt-4 text-lg font-semibold">Enter your PIN</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Stockly is locked for your protection.</p>
+      <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">Enter your PIN</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Stockly is locked for your security.</p>
 
-      <div className={cn("mt-6 flex gap-3", error && "animate-shake")}>
+      {/* PIN dots */}
+      <div className={cn("mt-6 flex gap-3.5", error && "animate-shake")}>
         {Array.from({ length: 6 }).map((_, i) => (
           <span
             key={i}
             className={cn(
-              "size-3 rounded-full border",
-              i < pin.length ? "border-primary bg-primary" : "border-border bg-muted",
+              "size-3.5 rounded-full border transition-all duration-150",
+              i < pin.length
+                ? "border-primary bg-primary scale-110 shadow-xs shadow-primary/50"
+                : "border-border/80 bg-muted/60",
             )}
           />
         ))}
       </div>
-      <p className="mt-3 h-5 text-sm font-medium text-destructive" role="alert">
-        {error ? "Wrong PIN. Try again." : ""}
+      <p className="mt-2.5 h-5 text-xs font-semibold text-destructive" role="alert">
+        {error ? "Incorrect PIN. Please try again." : ""}
       </p>
 
-      <div className="mt-4 grid w-full max-w-xs grid-cols-3 gap-3">
+      {/* Numeric Touch Keypad (Ergonomic for Android APK & Mobile touch) */}
+      <div className="mt-3 grid w-full max-w-xs grid-cols-3 gap-3">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
           <button
             key={d}
             type="button"
             onClick={() => press(d)}
-            className="num min-h-14 rounded-xl border border-border bg-elevated text-lg font-semibold active:bg-accent"
+            className="num min-h-14 rounded-2xl border border-border/80 bg-elevated/80 text-xl font-bold text-foreground active:scale-95 active:bg-accent transition-all shadow-xs"
           >
             {d}
           </button>
@@ -213,14 +219,14 @@ function PinLockScreen() {
           type="button"
           onClick={() => setPin((p) => p.slice(0, -1))}
           aria-label="Backspace"
-          className="flex min-h-14 items-center justify-center rounded-xl border border-border bg-elevated active:bg-accent"
+          className="flex min-h-14 items-center justify-center rounded-2xl border border-border/80 bg-elevated/80 active:scale-95 active:bg-accent transition-all shadow-xs text-muted-foreground hover:text-foreground"
         >
           <Delete className="size-5" aria-hidden />
         </button>
         <button
           type="button"
           onClick={() => press("0")}
-          className="num min-h-14 rounded-xl border border-border bg-elevated text-lg font-semibold active:bg-accent"
+          className="num min-h-14 rounded-2xl border border-border/80 bg-elevated/80 text-xl font-bold text-foreground active:scale-95 active:bg-accent transition-all shadow-xs"
         >
           0
         </button>
@@ -228,10 +234,10 @@ function PinLockScreen() {
           type="button"
           onClick={() => void submit(pin)}
           disabled={pin.length < 4}
-          aria-label="Enter"
-          className="min-h-14 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-40"
+          aria-label="Unlock"
+          className="min-h-14 rounded-2xl bg-primary text-sm font-bold text-primary-foreground disabled:opacity-30 active:scale-95 transition-all shadow-sm shadow-primary/25"
         >
-          Enter
+          OK
         </button>
       </div>
     </div>

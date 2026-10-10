@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity as ActivityIcon } from "lucide-react";
+import { Activity as ActivityIcon, User, Filter, ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   EmptyState,
@@ -20,12 +20,12 @@ import { formatDateTime } from "@/utils/format";
 export const Route = createFileRoute("/activity")({
   head: () => ({
     meta: [
-      { title: "Activity Log â€” Stockly" },
+      { title: "Activity Log — Stockly" },
       {
         name: "description",
         content: "Audit trail of every add, edit, delete, import and export made on this device.",
       },
-      { property: "og:title", content: "Activity Log â€” Stockly" },
+      { property: "og:title", content: "Activity Log — Stockly" },
       { property: "og:description", content: "A full audit trail of your shop records." },
     ],
   }),
@@ -70,25 +70,31 @@ function ActivityPage() {
     a === "ADD" ? "success" : a === "DELETE" ? "destructive" : a === "EDIT" ? "info" : "muted";
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Activity" subtitle="Who changed what, and when." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Audit & Activity Log"
+        subtitle="Detailed immutable log of every record creation, edit, deletion, or sync."
+      />
 
       <Panel className="space-y-4">
+        {/* Search Field */}
         <SearchField
           label="Search activity"
           value={search}
           onChange={setSearch}
-          placeholder="Search by model, record ID or remarks"
+          placeholder="Search by model, record ID or audit note"
         />
+
+        {/* Filter controls */}
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="User" htmlFor="act-user">
+          <Field label="Filter by User" htmlFor="act-user">
             <select
               id="act-user"
               className={inputClass}
               value={user}
               onChange={(e) => setUser(e.target.value)}
             >
-              <option value="">All users</option>
+              <option value="">All Shop Users</option>
               {users.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -96,14 +102,15 @@ function ActivityPage() {
               ))}
             </select>
           </Field>
-          <Field label="Action" htmlFor="act-action">
+
+          <Field label="Filter by Action" htmlFor="act-action">
             <select
               id="act-action"
               className={inputClass}
               value={action}
               onChange={(e) => setAction(e.target.value)}
             >
-              <option value="">All actions</option>
+              <option value="">All Action Types</option>
               {ACTIONS.map((a) => (
                 <option key={a} value={a}>
                   {a}
@@ -111,14 +118,15 @@ function ActivityPage() {
               ))}
             </select>
           </Field>
-          <Field label="Section" htmlFor="act-section">
+
+          <Field label="Filter by Section" htmlFor="act-section">
             <select
               id="act-section"
               className={inputClass}
               value={section}
               onChange={(e) => setSection(e.target.value)}
             >
-              <option value="">All sections</option>
+              <option value="">All Record Types</option>
               {SECTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -131,8 +139,8 @@ function ActivityPage() {
         {rows.length === 0 ? (
           <EmptyState
             icon={ActivityIcon}
-            title="No activity found"
-            description="Changes you make to records will be logged here automatically."
+            title="No audit entries found"
+            description="All modifications to stock, purchases, sales and expenses are automatically logged."
           />
         ) : (
           <div className="space-y-3">
@@ -142,43 +150,60 @@ function ActivityPage() {
               remaining={remaining}
               onLoadMore={loadMore}
             />
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {visible.map((c) => (
-                <li key={c.change_id} className="rounded-xl border border-border bg-elevated p-3.5">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 text-sm">
-                      <span className="font-semibold">{c.user}</span>{" "}
+                <li
+                  key={c.change_id}
+                  className="rounded-2xl border border-border/70 bg-elevated/60 p-4 transition-all hover:bg-elevated/90 shadow-xs"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary font-bold text-xs">
+                        {(c.user || "U").slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="font-bold text-sm text-foreground">{c.user}</span>
                       <StatusPill tone={tone(c.action)}>
                         {c.action} {c.section}
-                      </StatusPill>{" "}
-                      <span className="text-muted-foreground">
-                        {c.model || "â€”"} / {c.record_id}
-                      </span>
-                    </p>
-                    <p className="num text-xs text-muted-foreground">
-                      {formatDateTime(c.timestamp)}
-                    </p>
+                      </StatusPill>
+                    </div>
+                    <p className="num text-xs text-muted-foreground">{formatDateTime(c.timestamp)}</p>
                   </div>
-                  <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
+
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 text-xs">
                     <div>
-                      <dt className="label-xs">Device</dt>
-                      <dd className="num text-xs">{c.device_id || "â€”"}</dd>
-                    </div>
-                    <div>
-                      <dt className="label-xs">Record</dt>
-                      <dd className="num truncate text-xs">{c.record_id}</dd>
-                    </div>
-                    <div>
-                      <dt className="label-xs">Change</dt>
-                      <dd className="num truncate text-xs">
-                        {c.old_value || "â€”"} â†’ {c.new_value || "â€”"}
+                      <dt className="label-xs text-[10px] text-muted-foreground/80">Record</dt>
+                      <dd className="num mt-0.5 font-mono text-xs text-foreground font-semibold">
+                        {c.record_id}
                       </dd>
                     </div>
+
                     <div>
-                      <dt className="label-xs">Remarks</dt>
-                      <dd className="truncate text-xs">{c.remarks || "â€”"}</dd>
+                      <dt className="label-xs text-[10px] text-muted-foreground/80">Stock Model</dt>
+                      <dd className="mt-0.5 truncate font-medium text-foreground">
+                        {c.model || "—"}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt className="label-xs text-[10px] text-muted-foreground/80">Value Change</dt>
+                      <dd className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                        {c.old_value || "—"} → {c.new_value || "—"}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt className="label-xs text-[10px] text-muted-foreground/80">Device ID</dt>
+                      <dd className="num mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                        {c.device_id || "—"}
+                      </dd>
                     </div>
                   </dl>
+
+                  {c.remarks && (
+                    <div className="mt-2.5 rounded-lg bg-card/60 p-2 text-xs text-muted-foreground/90">
+                      {c.remarks}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

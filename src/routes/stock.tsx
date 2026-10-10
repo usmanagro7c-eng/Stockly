@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Boxes, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Boxes, Plus, SlidersHorizontal, Trash2, ArrowUpDown, ChevronRight, AlertTriangle, Layers } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -58,100 +58,253 @@ function StockPage() {
   const inventory = useInventory();
   const currency = useCurrency();
   const isReadOnly = useIsReadOnly();
+  const threshold = useStockStore((s) => s.settings.low_stock_threshold);
   const [search, setSearch] = useState("");
-  const [lowOnly, setLowOnly] = useState(false);
+  const [filterMode, setFilterMode] = useState<"ALL" | "LOW" | "OUT">("ALL");
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustPresetModel, setAdjustPresetModel] = useState<string | undefined>(undefined);
   const [detail, setDetail] = useState<string | null>(null);
   const debounced = useDebounced(search, 300);
 
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
-    return inventory.filter(
-      (i) =>
-        (!q || i.model.toLowerCase().includes(q)) &&
-        (!lowOnly || i.status === "LOW STOCK" || i.status === "OUT OF STOCK"),
-    );
-  }, [inventory, debounced, lowOnly]);
+    return inventory.filter((i) => {
+      const matchesSearch = !q || i.model.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      if (filterMode === "LOW") return i.status === "LOW STOCK";
+      if (filterMode === "OUT") return i.status === "OUT OF STOCK";
+      return true;
+    });
+  }, [inventory, debounced, filterMode]);
 
   const totalValue = filtered.reduce((t, i) => t + i.estimated_value, 0);
+  const totalUnits = filtered.reduce((t, i) => t + i.remaining, 0);
+  const lowCount = inventory.filter((i) => i.status === "LOW STOCK" || i.status === "OUT OF STOCK").length;
+
+  const handleOpenAdjust = (preset?: string) => {
+    setAdjustPresetModel(preset);
+    setAdjustOpen(true);
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Stock Inventory"
-        subtitle={`Estimated value ${formatMoney(totalValue, currency)}`}
+        subtitle={`Track on-hand units, weighted costs, and total stock valuation.`}
         action={
           !isReadOnly ? (
-            <button type="button" className={btnPrimary} onClick={() => setAdjustOpen(true)}>
-              <Plus className="size-4" aria-hidden /> Adjust
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => handleOpenAdjust()}
+            >
+              <Plus className="size-4" aria-hidden /> Adjust Stock
             </button>
           ) : undefined
         }
       />
 
+      {/* Stock Summary Mini-KPI Bar */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="surface p-4">
+          <p className="label-xs text-muted-foreground font-semibold">Total Stock Valuation</p>
+          <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
+            {formatMoney(totalValue, currency)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Across {filtered.length} models</p>
+        </div>
+
+        <div className="surface p-4">
+          <p className="label-xs text-muted-foreground font-semibold">Remaining Units</p>
+          <p className="num mt-1 text-xl font-bold text-foreground sm:text-2xl">
+            {formatUnits(totalUnits)}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Total on-hand stock</p>
+        </div>
+
+        <div className="surface p-4">
+          <p className="label-xs text-muted-foreground font-semibold">Healthy Models</p>
+          <p className="num mt-1 text-xl font-bold text-success sm:text-2xl">
+            {inventory.filter((i) => i.status === "IN STOCK").length}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Sufficient inventory</p>
+        </div>
+
+        <div className={cn("surface p-4", lowCount > 0 && "border-amber-500/30 bg-amber-500/5")}>
+          <p className="label-xs text-muted-foreground font-semibold">Low / Out of Stock</p>
+          <p className={cn("num mt-1 text-xl font-bold sm:text-2xl", lowCount > 0 ? "text-amber-400" : "text-muted-foreground")}>
+            {lowCount}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Below limit ({threshold})</p>
+        </div>
+      </div>
+
       <Panel className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <SearchField
-            label="Search stock"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by model"
-          />
-          <button
-            type="button"
-            onClick={() => setLowOnly((v) => !v)}
-            aria-pressed={lowOnly}
-            className={cn(
-              btnOutline,
-              "shrink-0",
-              lowOnly && "border-warning/50 bg-warning/15 text-warning",
-            )}
-          >
-            <SlidersHorizontal className="size-4" aria-hidden /> Low stock
-          </button>
+        {/* Search and Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <SearchField
+              label="Search stock"
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by model name"
+            />
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setFilterMode("ALL")}
+              className={cn(
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                filterMode === "ALL"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              All Models ({inventory.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode("LOW")}
+              className={cn(
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                filterMode === "LOW"
+                  ? "bg-amber-500 text-amber-950 font-bold shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              Low Stock
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode("OUT")}
+              className={cn(
+                "rounded-xl px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap active:scale-95",
+                filterMode === "OUT"
+                  ? "bg-destructive text-destructive-foreground shadow-xs"
+                  : "bg-elevated/70 text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
+            >
+              Out of Stock
+            </button>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
           <EmptyState
             icon={Boxes}
-            title="Stock is empty"
-            description="Buy some inventory to start tracking stock."
+            title="No stock models found"
+            description="Buy new inventory or clear active filters to inspect stock levels."
           />
         ) : (
-          <ul className="space-y-3">
-            {filtered.map((item) => (
-              <li key={item.model}>
-                <button
-                  type="button"
-                  onClick={() => setDetail(item.model)}
-                  className="w-full rounded-xl border border-border bg-elevated p-3.5 text-left transition-colors hover:bg-accent/50"
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {filtered.map((item) => {
+              const bought = Math.max(item.bought, 1);
+              const remainingPct = Math.min(100, Math.max(0, (item.remaining / bought) * 100));
+
+              return (
+                <li
+                  key={item.model}
+                  className="rounded-2xl border border-border/80 bg-elevated/60 p-4 transition-all hover:bg-elevated/90 hover:border-border shadow-xs flex flex-col justify-between"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{item.model}</p>
-                      <p className="num text-xs text-muted-foreground">
-                        {formatUnits(item.remaining)} units remaining
-                      </p>
-                    </div>
-                    <StatusPill tone={statusTone(item.status)}>{item.status}</StatusPill>
-                  </div>
-                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 sm:grid-cols-5">
-                    {[
-                      { label: "Bought", value: formatUnits(item.bought) },
-                      { label: "Sold", value: formatUnits(item.sold) },
-                      { label: "Adjusted", value: formatUnits(item.adjusted) },
-                      { label: "Avg cost", value: formatMoney(item.avg_cost, currency) },
-                      { label: "Est. value", value: formatMoney(item.estimated_value, currency) },
-                    ].map((m) => (
-                      <div key={m.label}>
-                        <dt className="label-xs">{m.label}</dt>
-                        <dd className="num mt-0.5 text-sm font-medium">{m.value}</dd>
+                  <div>
+                    {/* Header: Title and Status Pill */}
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setDetail(item.model)}
+                          className="text-left font-bold text-foreground text-base hover:text-primary transition-colors truncate block"
+                        >
+                          {item.model}
+                        </button>
+                        <p className="num text-xs text-muted-foreground mt-0.5">
+                          Avg Cost: {formatMoney(item.avg_cost, currency)}
+                        </p>
                       </div>
-                    ))}
-                  </dl>
-                </button>
-              </li>
-            ))}
+                      <StatusPill tone={statusTone(item.status)}>{item.status}</StatusPill>
+                    </div>
+
+                    {/* Stock Health Progress Bar */}
+                    <div className="mt-3.5 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-medium">On-hand level</span>
+                        <span className="font-bold num text-foreground">
+                          {formatUnits(item.remaining)} / {formatUnits(item.bought)} units
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            item.remaining <= 0
+                              ? "bg-destructive"
+                              : item.status === "LOW STOCK"
+                                ? "bg-amber-400"
+                                : "bg-primary",
+                          )}
+                          style={{ width: `${remainingPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Metrics Grid */}
+                    <div className="mt-3.5 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-card/60 p-2.5 text-center">
+                      <div>
+                        <p className="label-xs text-[10px] text-muted-foreground/80">Sold</p>
+                        <p className="num font-semibold text-xs text-foreground mt-0.5">
+                          {formatUnits(item.sold)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="label-xs text-[10px] text-muted-foreground/80">Est. Value</p>
+                        <p className="num font-semibold text-xs text-foreground mt-0.5 truncate">
+                          {formatMoney(item.estimated_value, currency)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="label-xs text-[10px] text-muted-foreground/80">Profit</p>
+                        <p className={cn("num font-semibold text-xs mt-0.5 truncate", item.gross_profit >= 0 ? "text-success" : "text-destructive")}>
+                          {formatMoney(item.gross_profit, currency)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="mt-3.5 flex items-center justify-between border-t border-border/60 pt-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDetail(item.model)}
+                      className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 active:scale-95 transition-all"
+                    >
+                      <span>Full Timeline & Breakdown</span>
+                      <ChevronRight className="size-3.5" />
+                    </button>
+
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAdjust(item.model)}
+                          className="rounded-lg border border-border/80 bg-elevated px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-accent active:scale-95 transition-all"
+                        >
+                          Adjust
+                        </button>
+                        <Link
+                          to="/buy"
+                          className="rounded-lg bg-primary/15 border border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/25 active:scale-95 transition-all"
+                        >
+                          Restock
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Panel>
@@ -160,6 +313,7 @@ function StockPage() {
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
         models={inventory.map((i) => i.model)}
+        presetModel={adjustPresetModel}
       />
       <ModelDetail model={detail} inventory={inventory} onClose={() => setDetail(null)} />
     </div>
@@ -222,14 +376,14 @@ function AdjustDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto rounded-3xl p-6 border-border/80 bg-card/95 backdrop-blur-2xl">
         <DialogHeader>
-          <DialogTitle>Adjust stock</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Adjust Stock Units</DialogTitle>
           <DialogDescription>
-            Corrections for found, damaged or lost inventory. Every adjustment is logged.
+            Record inventory corrections, found items, damages or write-offs.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4">
+        <form onSubmit={submit} className="grid gap-4 mt-2">
           <Field label="Model" htmlFor="adj-model" required error={errors.model}>
             <input
               id="adj-model"
@@ -238,7 +392,7 @@ function AdjustDialog({
               value={presetModel ?? model}
               disabled={Boolean(presetModel)}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="Model name"
+              placeholder="Select or enter model"
             />
             <datalist id="adj-models">
               {models.map((m) => (
@@ -247,7 +401,7 @@ function AdjustDialog({
             </datalist>
           </Field>
 
-          <Field label="Adjustment type" htmlFor="adj-type" required>
+          <Field label="Adjustment Type" htmlFor="adj-type" required>
             <select
               id="adj-type"
               className={inputClass}
@@ -269,10 +423,10 @@ function AdjustDialog({
             error={errors.quantity}
             hint={
               type === "Correction"
-                ? "Use a negative number to reduce stock"
+                ? "Use negative to reduce stock, positive to increase"
                 : type === "Found Stock (+)"
-                  ? "Added to stock"
-                  : "Automatically deducted from stock"
+                  ? "Added directly to inventory"
+                  : "Deducted from inventory"
             }
           >
             <input
@@ -297,19 +451,19 @@ function AdjustDialog({
             />
           </Field>
 
-          <Field label="Reason" htmlFor="adj-reason" required error={errors.reason}>
+          <Field label="Reason / Audit Note" htmlFor="adj-reason" required error={errors.reason}>
             <input
               id="adj-reason"
               className={inputClass}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why is the stock changing?"
+              placeholder="e.g. Broken in storage, Count mismatch"
             />
           </Field>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row pt-2">
             <button type="submit" className={btnPrimary}>
-              Save adjustment
+              Save Adjustment
             </button>
             <button type="button" className={btnOutline} onClick={() => onOpenChange(false)}>
               Cancel
@@ -329,7 +483,7 @@ function ModelDetail({
   model: string | null;
   inventory: InventoryItem[];
   onClose: () => void;
-}) {
+  }) {
   const purchases = useStockStore((s) => s.purchases);
   const sales = useStockStore((s) => s.sales);
   const adjustments = useStockStore((s) => s.adjustments);
@@ -395,118 +549,127 @@ function ModelDetail({
     if (kind === "BUY") await deletePurchase(id);
     else if (kind === "SELL") await deleteSale(id);
     else await deleteAdjustment(id);
-    toast.success(`${kind} deleted`);
+    toast.success(`${kind} record deleted`);
     setPendingDelete(null);
   };
 
   return (
     <>
       <Dialog open={Boolean(model && item)} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-3xl p-6 border-border/80 bg-card/95 backdrop-blur-2xl">
           <DialogHeader>
-            <DialogTitle>{model}</DialogTitle>
-            <DialogDescription>Full stock and money position for this model.</DialogDescription>
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="text-xl font-bold">{model}</DialogTitle>
+              {item && <StatusPill tone={statusTone(item.status)}>{item.status}</StatusPill>}
+            </div>
+            <DialogDescription>Full financial and quantity breakdown for this model.</DialogDescription>
           </DialogHeader>
+
           {item ? (
-            <>
+            <div className="space-y-4 mt-2">
               <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {[
-                  { label: "Remaining stock", value: `${formatUnits(item.remaining)} units` },
-                  { label: "Total bought", value: formatUnits(item.bought) },
-                  { label: "Total sold", value: formatUnits(item.sold) },
-                  { label: "Adjustments", value: formatUnits(item.adjusted) },
-                  { label: "Average buy price", value: formatMoney(item.avg_cost, currency) },
+                  { label: "Remaining Stock", value: `${formatUnits(item.remaining)} units` },
+                  { label: "Total Bought", value: `${formatUnits(item.bought)} units` },
+                  { label: "Total Sold", value: `${formatUnits(item.sold)} units` },
+                  { label: "Adjustments", value: `${formatUnits(item.adjusted)} units` },
+                  { label: "Average Buy Price", value: formatMoney(item.avg_cost, currency) },
                   {
-                    label: "Latest buy price",
+                    label: "Latest Buy Price",
                     value: formatMoney(item.latest_buy_price, currency),
                   },
                   {
-                    label: "Latest sell price",
+                    label: "Latest Sell Price",
                     value: formatMoney(item.latest_sell_price, currency),
                   },
                   {
-                    label: "Total investment",
+                    label: "Total Investment",
                     value: formatMoney(item.total_investment, currency),
                   },
-                  { label: "Total sales", value: formatMoney(item.total_sales, currency) },
+                  { label: "Total Sales", value: formatMoney(item.total_sales, currency) },
                 ].map((m) => (
-                  <div key={m.label} className="rounded-lg border border-border bg-elevated p-3">
-                    <dt className="label-xs">{m.label}</dt>
-                    <dd className="num mt-1 text-sm font-semibold">{m.value}</dd>
+                  <div key={m.label} className="rounded-xl border border-border/70 bg-elevated/60 p-3">
+                    <dt className="label-xs text-[10px] text-muted-foreground/80">{m.label}</dt>
+                    <dd className="num mt-1 text-sm font-bold text-foreground">{m.value}</dd>
                   </div>
                 ))}
-                <div className="col-span-2 rounded-lg border border-border bg-elevated p-3 sm:col-span-3">
-                  <dt className="label-xs">Gross profit</dt>
+                <div className="col-span-2 rounded-xl border border-border/70 bg-elevated/70 p-3 sm:col-span-3">
+                  <dt className="label-xs text-muted-foreground">Gross Profit Earned</dt>
                   <dd
                     className={cn(
-                      "num mt-1 text-lg font-semibold",
+                      "num mt-1 text-xl font-bold",
                       item.gross_profit >= 0 ? "text-success" : "text-destructive",
                     )}
                   >
-                    {item.gross_profit >= 0 ? "▲ " : "▼ "}
-                    {formatMoney(item.gross_profit, currency)}
+                    {item.gross_profit >= 0 ? "+ " : "- "}
+                    {formatMoney(Math.abs(item.gross_profit), currency)}
                   </dd>
                 </div>
               </dl>
 
-              <h3 className="mt-2 text-sm font-semibold">Transaction timeline</h3>
-              <ul className="divide-y divide-border">
-                {timeline.map((t) => (
-                  <li
-                    key={`${t.kind}-${t.id}`}
-                    className="flex items-start justify-between gap-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        <StatusPill
-                          tone={t.kind === "BUY" ? "info" : t.kind === "SELL" ? "success" : "muted"}
-                        >
-                          {t.kind}
-                        </StatusPill>{" "}
-                        <span className="num text-xs text-muted-foreground">{t.id}</span>
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {formatDate(t.date)} · {t.note || "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <p className="num text-sm font-semibold">
-                          {t.kind === "SELL" ? "-" : t.kind === "BUY" ? "+" : t.qty >= 0 ? "+" : ""}
-                          {formatUnits(Math.abs(t.qty))} units
+              <div>
+                <h3 className="text-sm font-bold text-foreground mb-2.5">Timeline History</h3>
+                <ul className="divide-y divide-border/60 rounded-xl border border-border/70 bg-elevated/40 p-2">
+                  {timeline.map((t) => (
+                    <li
+                      key={`${t.kind}-${t.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5 px-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <StatusPill
+                            tone={t.kind === "BUY" ? "info" : t.kind === "SELL" ? "success" : "muted"}
+                          >
+                            {t.kind}
+                          </StatusPill>
+                          <span className="num text-xs text-muted-foreground font-mono">{t.id}</span>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground mt-0.5">
+                          {formatDate(t.date)} · {t.note || "—"}
                         </p>
-                        {t.kind !== "ADJUSTMENT" ? (
-                          <p className="num text-xs text-muted-foreground">
-                            {formatMoney(t.amount, currency)}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className="num text-sm font-bold text-foreground">
+                            {t.kind === "SELL" ? "-" : t.kind === "BUY" ? "+" : t.qty >= 0 ? "+" : ""}
+                            {formatUnits(Math.abs(t.qty))} units
                           </p>
-                        ) : (
-                          <p className="num text-xs text-muted-foreground">
-                            {formatDateTime(t.at)}
-                          </p>
+                          {t.kind !== "ADJUSTMENT" ? (
+                            <p className="num text-xs text-muted-foreground">
+                              {formatMoney(t.amount, currency)}
+                            </p>
+                          ) : (
+                            <p className="num text-xs text-muted-foreground">
+                              {formatDateTime(t.at)}
+                            </p>
+                          )}
+                        </div>
+
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            className={btnIcon}
+                            aria-label={`Delete ${t.kind.toLowerCase()} ${t.id}`}
+                            onClick={() => setPendingDelete({ kind: t.kind, id: t.id, model: model! })}
+                          >
+                            <Trash2 className="size-4 text-destructive" aria-hidden />
+                          </button>
                         )}
                       </div>
-                      {!isReadOnly && (
-                        <button
-                          type="button"
-                          className={btnIcon}
-                          aria-label={`Delete ${t.kind.toLowerCase()} ${t.id}`}
-                          onClick={() => setPendingDelete({ kind: t.kind, id: t.id, model: model! })}
-                        >
-                          <Trash2 className="size-4 text-destructive" aria-hidden />
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
+
       <ConfirmDialog
         open={pendingDelete !== null}
         onOpenChange={(o) => !o && setPendingDelete(null)}
-        title={`Delete this ${pendingDelete?.kind?.toLowerCase()}?`}
+        title={`Delete this ${pendingDelete?.kind?.toLowerCase()} record?`}
         description={
           pendingDelete?.kind === "SELL"
             ? "Stock will be restored and profit figures recalculated. This cannot be undone."

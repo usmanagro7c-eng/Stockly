@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, Tag, Trash2 } from "lucide-react";
+import { Eye, Pencil, Tag, Trash2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -12,6 +12,7 @@ import {
   Panel,
   SearchField,
   SectionTitle,
+  StatusPill,
   btnIcon,
   btnOutline,
   btnPrimary,
@@ -26,13 +27,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/sell")({
   head: () => ({
     meta: [
-      { title: "Sell Stock â€” Stockly" },
+      { title: "Sell Stock — Stockly" },
       {
         name: "description",
         content:
           "Sell stock with live available quantity, weighted average cost and instant profit calculation.",
       },
-      { property: "og:title", content: "Sell Stock â€” Stockly" },
+      { property: "og:title", content: "Sell Stock — Stockly" },
       { property: "og:description", content: "Record sales and see profit per transaction." },
     ],
   }),
@@ -83,6 +84,7 @@ function SellPage() {
   const qty = toNumber(form.quantity);
   const totalSale = qty * toNumber(form.selling_price);
   const estimatedProfit = totalSale - qty * avgCost;
+  const profitMargin = totalSale > 0 ? (estimatedProfit / totalSale) * 100 : 0;
 
   const sellable = useMemo(
     () =>
@@ -95,6 +97,16 @@ function SellPage() {
   const set = (key: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: "" }));
+  };
+
+  const addQty = (amount: number) => {
+    const current = toNumber(form.quantity);
+    const next = Math.min(available, current + amount);
+    set("quantity", String(next));
+  };
+
+  const setMaxQty = () => {
+    if (available > 0) set("quantity", String(available));
   };
 
   const reset = () => {
@@ -195,19 +207,24 @@ function SellPage() {
   const { visible, remaining, loadMore } = useListPaging(filtered, [debounced]);
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Sell Stock" subtitle="Sell from available inventory with live profit." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Sell Stock (POS)"
+        subtitle="Record customer orders with real-time profit and inventory deduction."
+      />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Sale" : "Record New Sale"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Sale Record" : "New Sale Transaction"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
               <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying sales is disabled.</span>
             </div>
           )}
-          <Field label="Stock model" htmlFor="sell-model" required error={errors.model}>
+
+          {/* Model selection */}
+          <Field label="Stock Model" htmlFor="sell-model" required error={errors.model}>
             <select
               id="sell-model"
               className={inputClass}
@@ -218,13 +235,14 @@ function SellPage() {
               <option value="">Select a model in stock</option>
               {sellable.map((i) => (
                 <option key={i.model} value={i.model}>
-                  {i.model} ({formatUnits(i.remaining)} in stock)
+                  {i.model} ({formatUnits(i.remaining)} available · Cost: {formatMoney(i.avg_cost, currency)})
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="Date" htmlFor="sell-date" required error={errors.date}>
+          {/* Date */}
+          <Field label="Sale Date" htmlFor="sell-date" required error={errors.date}>
             <input
               id="sell-date"
               type="date"
@@ -235,18 +253,54 @@ function SellPage() {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-            <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="label-xs">Available stock</p>
-              <p className="num mt-1 text-lg font-semibold">{formatUnits(available)} units</p>
+          {/* Stock Info Pill Row */}
+          {form.model && (
+            <div className="sm:col-span-2 flex flex-wrap items-center gap-2.5 p-3 rounded-xl border border-border/70 bg-elevated/50 text-xs">
+              <span className="text-muted-foreground font-medium">Selected Model:</span>
+              <span className="font-semibold text-foreground">{form.model}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">In Stock:</span>
+              <span className={cn("font-bold num", available <= threshold ? "text-amber-400" : "text-emerald-400")}>
+                {formatUnits(available)} units
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">Weighted Cost:</span>
+              <span className="font-semibold num text-foreground">{formatMoney(avgCost, currency)} / unit</span>
             </div>
-            <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="label-xs">Weighted avg cost</p>
-              <p className="num mt-1 text-lg font-semibold">{formatMoney(avgCost, currency)}</p>
-            </div>
-          </div>
+          )}
 
-          <Field label="Quantity" htmlFor="sell-qty" required error={errors.quantity}>
+          {/* Quantity with quick chips */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="sell-qty" className="label-xs block text-muted-foreground font-semibold">
+                Quantity <span className="text-destructive font-bold">*</span>
+              </label>
+              {available > 0 && !isReadOnly && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => addQty(1)}
+                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                  >
+                    +1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addQty(5)}
+                    className="rounded-md border border-border/80 bg-elevated px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                  >
+                    +5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={setMaxQty}
+                    className="rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 active:scale-95"
+                  >
+                    Max ({available})
+                  </button>
+                </div>
+              )}
+            </div>
             <input
               id="sell-qty"
               type="number"
@@ -257,13 +311,15 @@ function SellPage() {
               className={inputClass}
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
-              placeholder="0"
+              placeholder="Units to sell"
               disabled={isReadOnly}
             />
-          </Field>
+            {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
+          </div>
 
+          {/* Selling Price */}
           <Field
-            label={`Selling price / unit (${currency})`}
+            label={`Selling Price / Unit (${currency})`}
             htmlFor="sell-price"
             required
             error={errors.selling_price}
@@ -282,81 +338,126 @@ function SellPage() {
             />
           </Field>
 
-          <Field label="Customer" htmlFor="sell-customer">
+          {/* Customer */}
+          <Field label="Customer Name" htmlFor="sell-customer">
             <input
               id="sell-customer"
               className={inputClass}
               value={form.customer}
               onChange={(e) => set("customer", e.target.value)}
-              placeholder="Optional"
+              placeholder="e.g. Walk-in or Client name"
               disabled={isReadOnly}
             />
           </Field>
 
-          <Field label="Remarks" htmlFor="sell-remarks">
+          {/* Remarks */}
+          <Field label="Remarks / Notes" htmlFor="sell-remarks">
             <input
               id="sell-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="Optional"
+              placeholder="Payment method, invoice #, etc."
               disabled={isReadOnly}
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-            <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="label-xs">Total sale</p>
-              <p className="num mt-1 text-xl font-semibold">{formatMoney(totalSale, currency)}</p>
+          {/* Digital POS Receipt Live Summary Card */}
+          <div className="rounded-2xl border border-border/80 bg-elevated/70 p-4 sm:col-span-2 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border/60 pb-2.5 mb-3">
+              <span className="label-xs text-muted-foreground font-semibold">Live Transaction Summary</span>
+              {qty > 0 && form.model && (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {formatUnits(qty)} × {formatMoney(toNumber(form.selling_price), currency)}
+                </span>
+              )}
             </div>
-            <div className="rounded-lg border border-border bg-elevated p-3">
-              <p className="label-xs">Estimated profit / loss</p>
-              <p
-                className={cn(
-                  "num mt-1 text-xl font-semibold",
-                  estimatedProfit >= 0 ? "text-success" : "text-destructive",
-                )}
-              >
-                {estimatedProfit >= 0 ? "▲ " : "▼ "}
-                {formatMoney(estimatedProfit, currency)}
-              </p>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Sale</p>
+                <p className="num mt-0.5 text-xl font-bold text-foreground">
+                  {formatMoney(totalSale, currency)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground">Est. Cost (COGS)</p>
+                <p className="num mt-0.5 text-xl font-semibold text-muted-foreground">
+                  {formatMoney(qty * avgCost, currency)}
+                </p>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1">
+                <p className="text-xs text-muted-foreground">Net Profit</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p
+                    className={cn(
+                      "num text-xl font-bold flex items-center gap-1",
+                      estimatedProfit >= 0 ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {estimatedProfit >= 0 ? (
+                      <TrendingUp className="size-4.5 text-success" />
+                    ) : (
+                      <TrendingDown className="size-4.5 text-destructive" />
+                    )}
+                    {formatMoney(estimatedProfit, currency)}
+                  </p>
+                  {totalSale > 0 && (
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+                        estimatedProfit >= 0 ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+                      )}
+                    >
+                      {profitMargin.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row pt-1">
             <button
               type="submit"
-              className={cn(btnPrimary, isReadOnly && "cursor-not-allowed opacity-50")}
+              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
-              {editingId ? "Update sale" : "Save sale"}
+              <Tag className="size-4" aria-hidden />
+              {editingId ? "Update Sale Record" : "Complete & Save Sale"}
             </button>
-            {editingId ? (
+            {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>
                 Cancel
               </button>
-            ) : null}
+            )}
           </div>
         </form>
       </Panel>
 
+      {/* Sales History */}
       <Panel className="space-y-4">
         <SectionTitle
-          right={<span className="num text-sm text-muted-foreground">{filtered.length}</span>}
+          right={<span className="num text-xs font-semibold px-2 py-0.5 rounded-full bg-elevated text-muted-foreground">{filtered.length} records</span>}
         >
-          Sales history
+          Sales History
         </SectionTitle>
+
         <SearchField
           label="Search sales"
           value={search}
           onChange={setSearch}
           placeholder="Search by model, customer or record ID"
         />
+
         {filtered.length === 0 ? (
           <EmptyState
             icon={Tag}
-            title="No sales yet"
-            description="Sales you record will appear here with profit details."
+            title="No sales found"
+            description="Sales transactions will appear here with live profit breakdown."
           />
         ) : (
           <>
@@ -368,31 +469,36 @@ function SellPage() {
             />
             <ul className="space-y-3">
               {visible.map((s) => (
-                <li key={s.record_id} className="rounded-xl border border-border bg-elevated p-3.5">
+                <li
+                  key={s.record_id}
+                  className="rounded-2xl border border-border/70 bg-elevated/60 p-4 transition-all hover:bg-elevated/90 shadow-xs"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{s.model}</p>
-                      <p className="num text-xs text-muted-foreground">
+                      <p className="truncate text-sm font-bold text-foreground">{s.model}</p>
+                      <p className="num text-xs text-muted-foreground mt-0.5">
                         {formatUnits(s.quantity)} units · {s.record_id} · {formatDate(s.date)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="num text-sm font-semibold">
+                        <p className="num text-sm font-bold text-foreground">
                           {formatMoney(s.total_sale, currency)}
                         </p>
                         <p
                           className={cn(
-                            "num text-xs font-semibold",
+                            "num text-xs font-semibold flex items-center justify-end gap-1",
                             s.profit >= 0 ? "text-success" : "text-destructive",
                           )}
                         >
-                          {s.profit >= 0 ? "▲ Profit " : "▼ Loss "}
-                          {formatMoney(Math.abs(s.profit), currency)}
+                          {s.profit >= 0 ? "+" : "-"}
+                          {formatMoney(Math.abs(s.profit), currency)} Profit
                         </p>
                       </div>
+
                       {!isReadOnly && (
-                        <>
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             className={btnIcon}
@@ -403,23 +509,24 @@ function SellPage() {
                           </button>
                           <button
                             type="button"
-                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            className={`${btnIcon} text-destructive hover:text-destructive hover:bg-destructive/10`}
                             aria-label={`Delete sale ${s.record_id}`}
                             onClick={() => setPendingDelete(s.record_id)}
                           >
                             <Trash2 className="size-4" aria-hidden />
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 border-t border-border pt-3">
+
+                  <div className="mt-3 border-t border-border/60 pt-3">
                     <MetaRow
                       items={[
-                        { label: "Unit price", value: formatMoney(s.selling_price, currency) },
-                        { label: "Customer", value: s.customer || "â€”" },
-                        { label: "Remarks", value: s.remarks || "â€”" },
-                        { label: "Added by", value: s.created_by || "â€”" },
+                        { label: "Unit Price", value: formatMoney(s.selling_price, currency) },
+                        { label: "Customer", value: s.customer || "Walk-in" },
+                        { label: "Remarks", value: s.remarks || "—" },
+                        { label: "Logged By", value: s.created_by || "—" },
                       ]}
                     />
                   </div>

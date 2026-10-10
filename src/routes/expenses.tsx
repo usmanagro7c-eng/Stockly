@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Eye, Pencil, Receipt, Trash2 } from "lucide-react";
+import { Eye, Pencil, Receipt, Trash2, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -27,12 +27,12 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/expenses")({
   head: () => ({
     meta: [
-      { title: "Expenses â€” Stockly" },
+      { title: "Expenses — Stockly" },
       {
         name: "description",
         content: "Track shop running costs by category and see their effect on net profit.",
       },
-      { property: "og:title", content: "Expenses â€” Stockly" },
+      { property: "og:title", content: "Expenses — Stockly" },
       { property: "og:description", content: "Track shop expenses by category." },
     ],
   }),
@@ -147,19 +147,24 @@ function ExpensesPage() {
   const { visible, remaining, loadMore } = useListPaging(filtered, [debounced]);
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Expenses" subtitle="Running costs that reduce your net profit." />
+    <div className="space-y-6">
+      <PageHeader
+        title="Shop Expenses"
+        subtitle="Track overhead costs, utility bills and operational spending that deduct from profits."
+      />
 
       <Panel>
-        <SectionTitle>{editingId ? "Edit Expense" : "Record New Expense"}</SectionTitle>
+        <SectionTitle>{editingId ? "Edit Expense Record" : "Record New Expense"}</SectionTitle>
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           {isReadOnly && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-600 dark:text-amber-400 sm:col-span-2">
+            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-400 sm:col-span-2">
               <Eye className="size-4 shrink-0" aria-hidden />
               <span>Viewer Mode: You have read-only access to this Google Sheet. Adding or modifying expenses is disabled.</span>
             </div>
           )}
-          <Field label="Category" htmlFor="exp-type" required error={errors.expense_type}>
+
+          {/* Category selection */}
+          <Field label="Expense Category" htmlFor="exp-type" required error={errors.expense_type}>
             <select
               id="exp-type"
               className={inputClass}
@@ -176,6 +181,7 @@ function ExpensesPage() {
             </select>
           </Field>
 
+          {/* Amount */}
           <Field label={`Amount (${currency})`} htmlFor="exp-amount" required error={errors.amount}>
             <input
               id="exp-amount"
@@ -191,7 +197,8 @@ function ExpensesPage() {
             />
           </Field>
 
-          <Field label="Date" htmlFor="exp-date" required error={errors.date}>
+          {/* Date */}
+          <Field label="Expense Date" htmlFor="exp-date" required error={errors.date}>
             <input
               id="exp-date"
               type="date"
@@ -202,55 +209,63 @@ function ExpensesPage() {
             />
           </Field>
 
-          <Field label="Remarks" htmlFor="exp-remarks" required error={errors.remarks}>
+          {/* Remarks */}
+          <Field label="Description / Remarks" htmlFor="exp-remarks" required error={errors.remarks}>
             <input
               id="exp-remarks"
               className={inputClass}
               value={form.remarks}
               onChange={(e) => set("remarks", e.target.value)}
-              placeholder="What was this for?"
+              placeholder="What was this expense for?"
               disabled={isReadOnly}
             />
           </Field>
 
-          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row pt-1">
             <button
               type="submit"
-              className={cn(btnPrimary, isReadOnly && "cursor-not-allowed opacity-50")}
+              className={cn(btnPrimary, "w-full sm:w-auto", isReadOnly && "cursor-not-allowed opacity-50")}
               disabled={isReadOnly}
             >
-              {editingId ? "Update expense" : "Save expense"}
+              <Receipt className="size-4" aria-hidden />
+              {editingId ? "Update Expense Record" : "Save Expense"}
             </button>
-            {editingId ? (
+            {editingId && (
               <button type="button" className={btnOutline} onClick={reset}>
                 Cancel
               </button>
-            ) : null}
+            )}
           </div>
         </form>
       </Panel>
 
+      {/* Expense History */}
       <Panel className="space-y-4">
         <SectionTitle
           right={
-            <span className="num text-sm text-muted-foreground">
-              {formatMoney(total, currency)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Filtered Total:</span>
+              <span className="num text-sm font-bold text-destructive">
+                -{formatMoney(total, currency)}
+              </span>
+            </div>
           }
         >
-          Expense history
+          Expense History
         </SectionTitle>
+
         <SearchField
           label="Search expenses"
           value={search}
           onChange={setSearch}
           placeholder="Search by category, remarks or record ID"
         />
+
         {filtered.length === 0 ? (
           <EmptyState
             icon={Receipt}
             title="No expenses found"
-            description="Your expense records will appear here."
+            description="Shop expenses you record will appear here."
           />
         ) : (
           <>
@@ -262,20 +277,29 @@ function ExpensesPage() {
             />
             <ul className="space-y-3">
               {visible.map((e) => (
-                <li key={e.record_id} className="rounded-xl border border-border bg-elevated p-3.5">
+                <li
+                  key={e.record_id}
+                  className="rounded-2xl border border-border/70 bg-elevated/60 p-4 transition-all hover:bg-elevated/90 shadow-xs"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{e.expense_type}</p>
-                      <p className="num text-xs text-muted-foreground">
-                        {e.record_id} · {formatDate(e.date)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                          {e.expense_type}
+                        </span>
+                        <span className="num text-xs text-muted-foreground font-mono">{e.record_id}</span>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground mt-1.5">{e.remarks}</p>
+                      <p className="num text-xs text-muted-foreground mt-0.5">{formatDate(e.date)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="num text-sm font-semibold text-destructive">
+
+                    <div className="flex items-center gap-3">
+                      <span className="num text-sm font-bold text-destructive">
                         -{formatMoney(e.amount, currency)}
                       </span>
+
                       {!isReadOnly && (
-                        <>
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             className={btnIcon}
@@ -286,24 +310,22 @@ function ExpensesPage() {
                           </button>
                           <button
                             type="button"
-                            className={`${btnIcon} text-destructive hover:text-destructive`}
+                            className={`${btnIcon} text-destructive hover:text-destructive hover:bg-destructive/10`}
                             aria-label={`Delete expense ${e.record_id}`}
                             onClick={() => setPendingDelete(e.record_id)}
                           >
                             <Trash2 className="size-4" aria-hidden />
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 border-t border-border pt-3">
-                    <MetaRow
-                      items={[
-                        { label: "Remarks", value: e.remarks || "â€”" },
-                        { label: "Added by", value: e.created_by || "â€”" },
-                      ]}
-                    />
-                  </div>
+
+                  {e.created_by && (
+                    <div className="mt-2.5 border-t border-border/60 pt-2 text-xs text-muted-foreground">
+                      Logged by: <span className="font-medium text-foreground">{e.created_by}</span>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
