@@ -15,10 +15,12 @@ import { Route as BuyRouteImport } from './routes/buy'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as InvestmentsRouteImport } from './routes/investments'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StockRouteImport } from './routes/stock'
+import { Route as TermsRouteImport } from './routes/terms'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -50,6 +52,11 @@ const InvestmentsRoute = InvestmentsRouteImport.update({
   path: '/investments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -70,6 +77,11 @@ const StockRoute = StockRouteImport.update({
   path: '/stock',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,10 +90,12 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
   '/investments': typeof InvestmentsRoute
+  '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/stock': typeof StockRoute
+  '/terms': typeof TermsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,10 +104,12 @@ export interface FileRoutesByTo {
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
   '/investments': typeof InvestmentsRoute
+  '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/stock': typeof StockRoute
+  '/terms': typeof TermsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,10 +119,12 @@ export interface FileRoutesById {
   '/expenses': typeof ExpensesRoute
   '/history': typeof HistoryRoute
   '/investments': typeof InvestmentsRoute
+  '/privacy': typeof PrivacyRoute
   '/reports': typeof ReportsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/stock': typeof StockRoute
+  '/terms': typeof TermsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,10 +135,12 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/history'
     | '/investments'
+    | '/privacy'
     | '/reports'
     | '/sell'
     | '/settings'
     | '/stock'
+    | '/terms'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,10 +149,12 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/history'
     | '/investments'
+    | '/privacy'
     | '/reports'
     | '/sell'
     | '/settings'
     | '/stock'
+    | '/terms'
   id:
     | '__root__'
     | '/'
@@ -141,10 +163,12 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/history'
     | '/investments'
+    | '/privacy'
     | '/reports'
     | '/sell'
     | '/settings'
     | '/stock'
+    | '/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,10 +178,12 @@ export interface RootRouteChildren {
   ExpensesRoute: typeof ExpensesRoute
   HistoryRoute: typeof HistoryRoute
   InvestmentsRoute: typeof InvestmentsRoute
+  PrivacyRoute: typeof PrivacyRoute
   ReportsRoute: typeof ReportsRoute
   SellRoute: typeof SellRoute
   SettingsRoute: typeof SettingsRoute
   StockRoute: typeof StockRoute
+  TermsRoute: typeof TermsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvestmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -232,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StockRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -242,10 +282,12 @@ const rootRouteChildren: RootRouteChildren = {
   ExpensesRoute: ExpensesRoute,
   HistoryRoute: HistoryRoute,
   InvestmentsRoute: InvestmentsRoute,
+  PrivacyRoute: PrivacyRoute,
   ReportsRoute: ReportsRoute,
   SellRoute: SellRoute,
   SettingsRoute: SettingsRoute,
   StockRoute: StockRoute,
+  TermsRoute: TermsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
