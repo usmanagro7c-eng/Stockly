@@ -11,6 +11,7 @@ import type { Adjustment, ChangeLog, Expense, Investment, Purchase, Sale, Settin
 
 export const DEFAULT_SETTINGS: Settings = {
   user_name: "",
+  company_name: "Personal",
   device_id: "",
   currency_symbol: "Rs.",
   low_stock_threshold: 5,

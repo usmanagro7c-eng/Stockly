@@ -75,7 +75,9 @@ function ReportsPage() {
   const adjustments = useStockStore((s) => s.adjustments);
   const investments = useStockStore((s) => s.investments);
   const inventory = useInventory();
-  const shopName = useStockStore((s) => s.settings.user_name);
+  const companyName = useStockStore((s) => s.settings.company_name);
+  const userName = useStockStore((s) => s.settings.user_name);
+  const shopName = companyName || userName;
   const threshold = useStockStore((s) => s.settings.low_stock_threshold);
   const currency = useCurrency();
 
@@ -264,7 +266,7 @@ function ReportsPage() {
               onClick={() => {
                 printSalesReportPDF({
                   shopName,
-                  userName: shopName,
+                  userName,
                   dateRange: rangeLabel,
                   currency,
                   metrics: {

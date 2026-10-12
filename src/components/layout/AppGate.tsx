@@ -81,16 +81,28 @@ function SetupScreen() {
   const updateSettings = useStockStore((s) => s.updateSettings);
   const deviceId = useStockStore((s) => s.settings.device_id);
   const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [companyName, setCompanyName] = useState("Personal");
+  const [errors, setErrors] = useState<{ name?: string; company?: string }>({});
   const [id] = useState(() => deviceId || generateDeviceId());
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: { name?: string; company?: string } = {};
     if (!name.trim()) {
-      setError("Please enter your name to continue");
+      newErrors.name = "Please enter your name to continue";
+    }
+    if (!companyName.trim()) {
+      newErrors.company = "Company / Brand name is required (use 'Personal' or brand name)";
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
-    await updateSettings({ user_name: name.trim(), device_id: id });
+    await updateSettings({
+      user_name: name.trim(),
+      company_name: companyName.trim(),
+      device_id: id,
+    });
     toast.success("Welcome to Stockly!");
   };
 
@@ -105,30 +117,62 @@ function SetupScreen() {
           Welcome! Offline-first inventory and profit manager. All data is saved on this device.
         </p>
 
+        {/* Field 1: User Name (Mandatory) */}
         <div className="mt-6 space-y-1.5">
           <label htmlFor="setup-name" className="label-xs block font-semibold text-muted-foreground">
-            Your Name / Store Name <span className="text-destructive font-bold">*</span>
+            Your Name <span className="text-destructive font-bold">*</span>
           </label>
           <input
             id="setup-name"
             className={inputClass}
             inputMode="text"
-            enterKeyHint="done"
+            enterKeyHint="next"
             value={name}
             onChange={(e) => {
               setName(e.target.value);
-              setError("");
+              setErrors((err) => ({ ...err, name: undefined }));
             }}
             placeholder="e.g. Usman Amjad"
+            autoFocus
           />
-          {error && (
+          {errors.name && (
             <p className="text-xs font-medium text-destructive" role="alert">
-              {error}
+              {errors.name}
             </p>
           )}
         </div>
 
-        <div className="mt-4 rounded-xl border border-border/70 bg-elevated/70 p-3">
+        {/* Field 2: Company / Brand (Mandatory, default 'Personal') */}
+        <div className="mt-4 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="setup-company" className="label-xs block font-semibold text-muted-foreground">
+              Company / Brand <span className="text-destructive font-bold">*</span>
+            </label>
+            <span className="text-[10px] text-muted-foreground">Default: Personal</span>
+          </div>
+          <input
+            id="setup-company"
+            className={inputClass}
+            inputMode="text"
+            enterKeyHint="done"
+            value={companyName}
+            onChange={(e) => {
+              setCompanyName(e.target.value);
+              setErrors((err) => ({ ...err, company: undefined }));
+            }}
+            placeholder="e.g. Personal or Agro 7C"
+          />
+          {errors.company && (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {errors.company}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Set to <span className="text-foreground font-medium">Personal</span> by default. You can edit this anytime in Settings.
+          </p>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-border/70 bg-elevated/70 p-3">
           <p className="label-xs text-muted-foreground">Assigned Device ID</p>
           <p className="num mt-1 text-xs font-mono font-semibold text-foreground truncate">{id}</p>
         </div>

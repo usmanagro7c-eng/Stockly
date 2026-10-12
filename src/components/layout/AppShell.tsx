@@ -297,14 +297,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-2.5 transition-all hover:bg-sidebar-accent/70 group"
           >
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary font-bold text-xs">
-              {(settings.user_name || "S").slice(0, 2).toUpperCase()}
+              {((settings.company_name || settings.user_name || "S").slice(0, 2)).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1 truncate">
               <p className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
-                {settings.user_name || "Shopkeeper"}
+                {settings.company_name || settings.user_name || "Personal"}
               </p>
               <p className="num truncate text-[11px] text-muted-foreground/80">
-                {settings.device_id || "Stockly Device"}
+                {settings.user_name || settings.device_id || "Stockly Device"}
               </p>
             </div>
             <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />

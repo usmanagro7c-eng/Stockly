@@ -99,15 +99,29 @@ function SettingsPage() {
   /* --- User Profile --- */
   const [profile, setProfile] = useState({
     user_name: settings.user_name,
+    company_name: settings.company_name || "Personal",
     currency_symbol: settings.currency_symbol || "Rs.",
     low_stock_threshold: settings.low_stock_threshold,
   });
   const [profileError, setProfileError] = useState("");
 
+  useEffect(() => {
+    setProfile({
+      user_name: settings.user_name,
+      company_name: settings.company_name || "Personal",
+      currency_symbol: settings.currency_symbol || "Rs.",
+      low_stock_threshold: settings.low_stock_threshold,
+    });
+  }, [settings.user_name, settings.company_name, settings.currency_symbol, settings.low_stock_threshold]);
+
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile.user_name.trim()) {
-      setProfileError("Name is required");
+      setProfileError("Your Name is required");
+      return;
+    }
+    if (!profile.company_name.trim()) {
+      setProfileError("Company / Brand is required");
       return;
     }
     if (profile.low_stock_threshold < 0) {
@@ -116,6 +130,7 @@ function SettingsPage() {
     }
     await updateSettings({
       user_name: profile.user_name.trim(),
+      company_name: profile.company_name.trim(),
       currency_symbol: profile.currency_symbol.trim(),
       low_stock_threshold: profile.low_stock_threshold,
     });
@@ -397,6 +412,7 @@ function SettingsPage() {
     if (importedSettings) {
       await updateSettings({
         user_name: (importedSettings.user_name as string) || "",
+        company_name: (importedSettings.company_name as string) || "Personal",
         currency_symbol: (importedSettings.currency_symbol as string) || "Rs.",
         low_stock_threshold:
           typeof importedSettings.low_stock_threshold === "number"
@@ -410,7 +426,7 @@ function SettingsPage() {
     toast.success(mode === "replace" ? "All data replaced successfully!" : "Data merged successfully!");
   };
 
-  const userInitial = (profile.user_name.trim()[0] || "U").toUpperCase();
+  const userInitial = ((profile.company_name || profile.user_name).trim()[0] || "P").toUpperCase();
 
   return (
     <div className="space-y-5 pb-8">
@@ -424,14 +440,14 @@ function SettingsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                  {profile.user_name || "Shop Settings"}
+                  {profile.company_name || profile.user_name || "Shop Settings"}
                 </h1>
                 <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary border border-primary/20">
                   {currency}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Manage appearance, Google Sheets cloud link, reports and shop security.
+                {profile.user_name ? `${profile.user_name} • ` : ""}Manage appearance, Google Sheets cloud link, reports and shop security.
               </p>
             </div>
           </div>
@@ -536,7 +552,12 @@ function SettingsPage() {
             </SectionTitle>
 
             <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Owner / Shop Name" htmlFor="set-name" required error={profileError}>
+              <Field
+                label="Your Name"
+                htmlFor="set-name"
+                required
+                error={profileError && !profile.user_name.trim() ? profileError : undefined}
+              >
                 <input
                   id="set-name"
                   className={inputClass}
@@ -545,7 +566,25 @@ function SettingsPage() {
                     setProfile((p) => ({ ...p, user_name: e.target.value }));
                     setProfileError("");
                   }}
-                  placeholder="e.g. Usman Agro"
+                  placeholder="e.g. Usman Amjad"
+                />
+              </Field>
+
+              <Field
+                label="Company / Brand"
+                htmlFor="set-company"
+                required
+                error={profileError && !profile.company_name.trim() ? profileError : undefined}
+              >
+                <input
+                  id="set-company"
+                  className={inputClass}
+                  value={profile.company_name}
+                  onChange={(e) => {
+                    setProfile((p) => ({ ...p, company_name: e.target.value }));
+                    setProfileError("");
+                  }}
+                  placeholder="e.g. Personal or My Shop Name"
                 />
               </Field>
 

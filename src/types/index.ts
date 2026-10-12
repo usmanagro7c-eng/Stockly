@@ -93,6 +93,7 @@ export interface ChangeLog {
 
 export interface Settings {
   user_name: string;
+  company_name?: string;
   device_id: string;
   currency_symbol: string;
   low_stock_threshold: number;

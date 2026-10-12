@@ -155,7 +155,11 @@ function Dashboard() {
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="font-semibold text-primary uppercase tracking-wider">{todayFormatted}</span>
             <span>·</span>
-            <span className="truncate">{settings.user_name || "Stockly Retail"}</span>
+            <span className="truncate">
+              {settings.company_name && settings.company_name !== settings.user_name
+                ? `${settings.company_name} (${settings.user_name})`
+                : (settings.user_name || "Stockly Retail")}
+            </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Business Overview
