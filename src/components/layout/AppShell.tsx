@@ -365,7 +365,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Open settings"
               className="flex size-8.5 items-center justify-center rounded-xl border border-primary/30 bg-primary/15 text-primary font-bold text-xs shadow-xs active:scale-90 transition-transform"
             >
-              {(settings.user_name || "S").slice(0, 2).toUpperCase()}
+              {((settings.company_name || settings.user_name || "S").slice(0, 2)).toUpperCase()}
             </Link>
           </div>
         </div>

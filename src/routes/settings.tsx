@@ -485,7 +485,7 @@ function SettingsPage() {
           type="button"
           onClick={() => setActiveTab("general")}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            "flex shrink-0 sm:flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3.5 whitespace-nowrap transition-all tap-active",
             activeTab === "general"
               ? "bg-primary text-primary-foreground font-semibold shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
@@ -499,7 +499,7 @@ function SettingsPage() {
           type="button"
           onClick={() => setActiveTab("sheets")}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            "flex shrink-0 sm:flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3.5 whitespace-nowrap transition-all tap-active",
             activeTab === "sheets"
               ? "bg-primary text-primary-foreground font-semibold shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
@@ -514,21 +514,21 @@ function SettingsPage() {
           type="button"
           onClick={() => setActiveTab("reports")}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            "flex shrink-0 sm:flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3.5 whitespace-nowrap transition-all tap-active",
             activeTab === "reports"
               ? "bg-primary text-primary-foreground font-semibold shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"
           )}
         >
           <FileSpreadsheetIcon className="size-4" />
-          <span>Reports & Data</span>
+          <span>Reports &amp; Data</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("security")}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3 whitespace-nowrap transition-all tap-active",
+            "flex shrink-0 sm:flex-1 items-center justify-center gap-2 rounded-xl py-2.5 px-3.5 whitespace-nowrap transition-all tap-active",
             activeTab === "security"
               ? "bg-primary text-primary-foreground font-semibold shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-elevated/60"

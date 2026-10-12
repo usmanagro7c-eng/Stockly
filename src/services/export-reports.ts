@@ -376,10 +376,10 @@ export function exportToCSV(fileName: string, headers: string[], rows: (string |
 }
 
 /**
- * 6. Printable High-Resolution PDF Report
- * Opens a dedicated print preview with clean A4 print styling and triggers print/save-as-pdf.
+ * 6. Printable High-Resolution PDF Report/**
+ * Generates clean, responsive HTML for the sales and financial report.
  */
-export function printSalesReportPDF(config: {
+export function generateSalesReportHtml(config: {
   shopName?: string;
   userName?: string;
   dateRange?: string;
@@ -392,25 +392,20 @@ export function printSalesReportPDF(config: {
     itemsSold: number;
   };
   sales: Sale[];
-}) {
+}): string {
   const { shopName, userName, dateRange, currency, metrics, sales } = config;
   const printDate = new Date().toLocaleString();
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    alert("Please allow popups to generate and print PDF reports.");
-    return;
-  }
-
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Sales & Financial Report — ${shopName || "Stockly"}</title>
   <style>
     @page {
       size: A4;
-      margin: 12mm 15mm;
+      margin: 10mm 12mm;
     }
     * {
       box-sizing: border-box;
@@ -422,7 +417,7 @@ export function printSalesReportPDF(config: {
       color: #0f172a;
       background: #ffffff;
       margin: 0;
-      padding: 20px;
+      padding: 16px;
       font-size: 13px;
       line-height: 1.4;
     }
@@ -432,24 +427,26 @@ export function printSalesReportPDF(config: {
       align-items: flex-start;
       border-bottom: 2px solid #059669;
       padding-bottom: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      gap: 16px;
     }
     .brand h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       color: #059669;
       font-weight: 800;
       letter-spacing: -0.5px;
     }
     .brand p {
       margin: 4px 0 0;
-      font-size: 13px;
+      font-size: 12px;
       color: #64748b;
     }
     .meta {
       text-align: right;
       font-size: 11px;
       color: #64748b;
+      line-height: 1.5;
     }
     .meta strong {
       color: #0f172a;
@@ -457,14 +454,14 @@ export function printSalesReportPDF(config: {
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 10px;
+      margin-bottom: 20px;
     }
     .kpi-card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 10px 14px;
+      padding: 10px 12px;
     }
     .kpi-card.highlight {
       background: #ecfdf5;
@@ -478,7 +475,7 @@ export function printSalesReportPDF(config: {
       letter-spacing: 0.5px;
     }
     .kpi-val {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #0f172a;
       margin-top: 4px;
@@ -490,7 +487,7 @@ export function printSalesReportPDF(config: {
       color: #dc2626;
     }
     h2 {
-      font-size: 14px;
+      font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin: 0 0 10px;
@@ -498,10 +495,16 @@ export function printSalesReportPDF(config: {
       border-bottom: 1px solid #e2e8f0;
       padding-bottom: 6px;
     }
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 20px;
+    }
     table {
       width: 100%;
+      min-width: 540px;
       border-collapse: collapse;
-      margin-bottom: 20px;
       font-size: 12px;
     }
     th {
@@ -511,6 +514,7 @@ export function printSalesReportPDF(config: {
       padding: 8px 10px;
       font-weight: 700;
       border-bottom: 1px solid #cbd5e1;
+      white-space: nowrap;
     }
     td {
       padding: 7px 10px;
@@ -526,8 +530,8 @@ export function printSalesReportPDF(config: {
       font-variant-numeric: tabular-nums;
     }
     .footer {
-      margin-top: 30px;
-      padding-top: 12px;
+      margin-top: 24px;
+      padding-top: 10px;
       border-top: 1px dashed #cbd5e1;
       display: flex;
       justify-content: space-between;
@@ -543,16 +547,49 @@ export function printSalesReportPDF(config: {
       background: #059669;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 10px 18px;
       font-size: 13px;
       font-weight: 600;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .btn-secondary {
       background: #e2e8f0;
       color: #334155;
     }
+
+    /* Mobile view optimizations */
+    @media screen and (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .meta {
+        text-align: left;
+      }
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+      }
+      .kpi-card {
+        padding: 8px 10px !important;
+      }
+      .print-actions {
+        flex-direction: column;
+      }
+      .btn {
+        width: 100%;
+        min-height: 44px;
+      }
+    }
+
     @media print {
       .print-actions {
         display: none !important;
@@ -560,13 +597,19 @@ export function printSalesReportPDF(config: {
       body {
         padding: 0;
       }
+      .table-scroll {
+        overflow: visible !important;
+      }
+      table {
+        min-width: 100% !important;
+      }
     }
   </style>
 </head>
 <body>
   <div class="print-actions">
     <button class="btn" onclick="window.print()">🖨 Print / Save as PDF</button>
-    <button class="btn btn-secondary" onclick="window.close()">Close Window</button>
+    <button class="btn btn-secondary" onclick="window.close()">Close Preview</button>
   </div>
 
   <div class="header">
@@ -601,55 +644,60 @@ export function printSalesReportPDF(config: {
   </div>
 
   <h2>Itemized Sales History (${sales.length} transactions)</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Record ID</th>
-        <th>Model / Product</th>
-        <th class="text-right">Qty</th>
-        <th class="text-right">Unit Price</th>
-        <th class="text-right">Total Sale</th>
-        <th class="text-right">Profit</th>
-        <th>Customer</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${sales
-        .map(
-          (s) => `
+  <div class="table-scroll">
+    <table>
+      <thead>
         <tr>
-          <td>${formatDate(s.date)}</td>
-          <td><span style="color:#64748b; font-size:11px">${s.record_id}</span></td>
-          <td><strong>${s.model}</strong></td>
-          <td class="text-right num">${s.quantity}</td>
-          <td class="text-right num">${formatMoney(s.selling_price, currency)}</td>
-          <td class="text-right num"><strong>${formatMoney(s.total_sale, currency)}</strong></td>
-          <td class="text-right num" style="color:#059669">+${formatMoney(s.profit, currency)}</td>
-          <td>${s.customer || "—"}</td>
-        </tr>`,
-        )
-        .join("")}
-    </tbody>
-    <tfoot>
-      <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1">
-        <td colspan="3">SUMMARY TOTALS</td>
-        <td class="text-right num">${metrics.itemsSold}</td>
-        <td></td>
-        <td class="text-right num">${formatMoney(metrics.totalSales, currency)}</td>
-        <td class="text-right num" style="color:#059669">+${formatMoney(metrics.totalProfit, currency)}</td>
-        <td></td>
-      </tr>
-    </tfoot>
-  </table>
+          <th>Date</th>
+          <th>Record ID</th>
+          <th>Model / Product</th>
+          <th class="text-right">Qty</th>
+          <th class="text-right">Unit Price</th>
+          <th class="text-right">Total Sale</th>
+          <th class="text-right">Profit</th>
+          <th>Customer</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${
+          sales.length === 0
+            ? `<tr><td colspan="8" style="text-align:center; padding:20px; color:#64748b;">No sales records found in selected range.</td></tr>`
+            : sales
+                .map(
+                  (s) => `
+          <tr>
+            <td>${formatDate(s.date)}</td>
+            <td><span style="color:#64748b; font-size:11px">${s.record_id}</span></td>
+            <td><strong>${s.model}</strong></td>
+            <td class="text-right num">${s.quantity}</td>
+            <td class="text-right num">${formatMoney(s.selling_price, currency)}</td>
+            <td class="text-right num"><strong>${formatMoney(s.total_sale, currency)}</strong></td>
+            <td class="text-right num" style="color:#059669">+${formatMoney(s.profit, currency)}</td>
+            <td>${s.customer || "—"}</td>
+          </tr>`,
+                )
+                .join("")
+        }
+      </tbody>
+      <tfoot>
+        <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1">
+          <td colspan="3">SUMMARY TOTALS</td>
+          <td class="text-right num">${metrics.itemsSold}</td>
+          <td></td>
+          <td class="text-right num">${formatMoney(metrics.totalSales, currency)}</td>
+          <td class="text-right num" style="color:#059669">+${formatMoney(metrics.totalProfit, currency)}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
   <div class="footer">
-    <div>Generated by Stockly — Inventory & Profit Manager</div>
-    <div>Page 1 of 1 • Official Business Record</div>
+    <div>Generated by Stockly — Offline Inventory & Profit Manager</div>
+    <div>Official Business Financial Record</div>
   </div>
 
   <script>
-    // Automatically open print dialog after brief rendering delay
     window.onload = function() {
       setTimeout(function() {
         window.print();
@@ -658,8 +706,79 @@ export function printSalesReportPDF(config: {
   </script>
 </body>
 </html>`;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
 }
+
+/**
+ * Opens a dedicated print preview with clean A4 print styling and triggers print/save-as-pdf.
+ * Safely handles mobile browsers and Android Capacitor WebViews where window.open may be blocked.
+ */
+export function printSalesReportPDF(config: {
+  shopName?: string;
+  userName?: string;
+  dateRange?: string;
+  currency: string;
+  metrics: {
+    totalSales: number;
+    totalProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+    itemsSold: number;
+  };
+  sales: Sale[];
+}) {
+  const html = generateSalesReportHtml(config);
+
+  // 1. Desktop & standard popups
+  let printWindow: Window | null = null;
+  try {
+    printWindow = window.open("", "_blank");
+  } catch {
+    printWindow = null;
+  }
+
+  if (printWindow && printWindow.document) {
+    try {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      return;
+    } catch {
+      // Continue to fallback
+    }
+  }
+
+  // 2. Mobile WebView fallback: render into a hidden printable iframe
+  try {
+    let iframe = document.getElementById("stockly-print-frame") as HTMLIFrameElement | null;
+    if (iframe) {
+      document.body.removeChild(iframe);
+    }
+    iframe = document.createElement("iframe");
+    iframe.id = "stockly-print-frame";
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+      setTimeout(() => {
+        iframe?.contentWindow?.focus();
+        iframe?.contentWindow?.print();
+      }, 500);
+      return;
+    }
+  } catch (err) {
+    console.error("Iframe print error:", err);
+  }
+
+  // 3. Fallback
+  window.print();
+}
+

@@ -294,55 +294,55 @@ function InvestmentsPage() {
       />
 
       {/* 4 Modern KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         {/* Net Capital */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Net Capital</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-              <Landmark className="size-4" />
+            <span className="text-xs font-medium text-muted-foreground truncate">Net Capital</span>
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 shrink-0">
+              <Landmark className="size-3.5 sm:size-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          <div className="mt-2 text-lg font-bold tracking-tight text-foreground sm:text-2xl truncate">
             {formatMoney(metrics.netCapital, currency)}
           </div>
         </div>
 
         {/* Gross Capital Injected */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Partner Capital</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
-              <TrendingUp className="size-4" />
+            <span className="text-xs font-medium text-muted-foreground truncate">Partner Capital</span>
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 shrink-0">
+              <TrendingUp className="size-3.5 sm:size-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl font-bold tracking-tight text-cyan-400 sm:text-2xl">
+          <div className="mt-2 text-lg font-bold tracking-tight text-cyan-400 sm:text-2xl truncate">
             +{formatMoney(metrics.grossCapital, currency)}
           </div>
         </div>
 
         {/* Loans / Borrowings */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Loans / Borrowings</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400">
-              <Coins className="size-4" />
+            <span className="text-xs font-medium text-muted-foreground truncate">Loans</span>
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 shrink-0">
+              <Coins className="size-3.5 sm:size-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl font-bold tracking-tight text-indigo-400 sm:text-2xl">
+          <div className="mt-2 text-lg font-bold tracking-tight text-indigo-400 sm:text-2xl truncate">
             {formatMoney(metrics.totalLoans, currency)}
           </div>
         </div>
 
         {/* Drawings / Withdrawals */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-4 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-card/90 via-card/60 to-background p-3.5 sm:p-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Withdrawals</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400">
-              <ArrowUpRight className="size-4" />
+            <span className="text-xs font-medium text-muted-foreground truncate">Withdrawals</span>
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400 shrink-0">
+              <ArrowUpRight className="size-3.5 sm:size-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl font-bold tracking-tight text-rose-400 sm:text-2xl">
+          <div className="mt-2 text-lg font-bold tracking-tight text-rose-400 sm:text-2xl truncate">
             -{formatMoney(metrics.totalDrawings, currency)}
           </div>
         </div>
