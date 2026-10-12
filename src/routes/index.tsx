@@ -125,8 +125,16 @@ function Dashboard() {
     [inventory],
   );
   const recentActivity = useMemo(
-    () => [...changelogs].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 5),
-    [changelogs],
+    () =>
+      [...changelogs]
+        .filter((c) => c.action !== "SYNC")
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+        .slice(0, 5)
+        .map((c) => ({
+          ...c,
+          user: c.user && c.user !== "Unknown" ? c.user : settings.user_name?.trim() || "Owner",
+        })),
+    [changelogs, settings.user_name],
   );
   const inventoryValue = useMemo(
     () => inventory.reduce((t, i) => t + i.estimated_value, 0),

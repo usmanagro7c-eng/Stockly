@@ -29,6 +29,8 @@ interface State {
   investments: Investment[];
   settings: Settings;
   sheetRole: SheetRole;
+  googleSessionExpired: boolean;
+  setGoogleSessionExpired: (expired: boolean) => void;
 
   init: () => Promise<void>;
   unlock: () => void;
@@ -114,6 +116,8 @@ export const useStockStore = create<State>((set, get) => ({
   investments: [],
   settings: { ...DEFAULT_SETTINGS },
   sheetRole: syncManager.getRole(),
+  googleSessionExpired: false,
+  setGoogleSessionExpired: (expired: boolean) => set({ googleSessionExpired: expired }),
 
   init: async () => {
     // Only skip when a previous attempt already succeeded. A stalled attempt
@@ -539,8 +543,15 @@ export const useStockStore = create<State>((set, get) => ({
     if (!get().settings.linked_file_name && !syncManager.isConnected()) return;
     try {
       const role = await syncManager.detectPermission();
-      set({ sheetRole: role });
-    } catch {
+      set({ sheetRole: role, googleSessionExpired: false });
+    } catch (err: any) {
+      if (
+        err?.status === 401 ||
+        String(err?.message || "").toLowerCase().includes("session has expired") ||
+        String(err?.message || "").toLowerCase().includes("unauthorized")
+      ) {
+        set({ googleSessionExpired: true });
+      }
       const existing = syncManager.getRole();
       if (existing) {
         set({ sheetRole: existing });
@@ -548,60 +559,61 @@ export const useStockStore = create<State>((set, get) => ({
     }
   },
 
-  syncToGoogleSheets: async (log = true) => {
-    const { purchases, sales } = get();
-    await syncManager.syncToSheets();
-    // syncToSheets touches last_sync_time in the DB; mirror it into the store
-    // so the Settings screen does not keep showing a stale timestamp.
-    const lastSync =
-      typeof localStorage !== "undefined" ? localStorage.getItem("googleLastSync") : null;
-    set({
-      sheetRole: syncManager.getRole(),
-      settings: {
-        ...get().settings,
-        last_sync_time: lastSync ?? new Date().toISOString(),
-      },
-    });
-    if (log) {
-      await addLog({
-        action: "SYNC",
-        section: "BUY",
-        record_id: "-",
-        model: "Google Sheet",
-        quantity: 0,
-        old_value: "",
-        new_value: "EXPORT",
-        remarks: `Synced ${purchases.length} purchases, ${sales.length} sales`,
+  syncToGoogleSheets: async (_log = false) => {
+    try {
+      await syncManager.syncToSheets();
+      // syncToSheets touches last_sync_time in the DB; mirror it into the store
+      // so the Settings screen does not keep showing a stale timestamp.
+      const lastSync =
+        typeof localStorage !== "undefined" ? localStorage.getItem("googleLastSync") : null;
+      set({
+        sheetRole: syncManager.getRole(),
+        googleSessionExpired: false,
+        settings: {
+          ...get().settings,
+          last_sync_time: lastSync ?? new Date().toISOString(),
+        },
       });
+      // Note: SYNC actions are excluded from audit changelogs as per user preference.
+    } catch (err: any) {
+      if (
+        err?.status === 401 ||
+        String(err?.message || "").toLowerCase().includes("session has expired") ||
+        String(err?.message || "").toLowerCase().includes("unauthorized")
+      ) {
+        set({ googleSessionExpired: true });
+      }
+      throw err;
     }
   },
 
-  syncFromGoogleSheets: async (log = true) => {
+  syncFromGoogleSheets: async (_log = false) => {
     // syncFromSheets already persists the merged dataset; use it directly
     // instead of re-reading every table out of IndexedDB a second time.
-    const data = await syncManager.syncFromSheets();
-    const role = syncManager.getRole();
-    set({
-      sheetRole: role,
-      purchases: data.purchases,
-      sales: data.sales,
-      expenses: data.expenses,
-      adjustments: data.adjustments,
-      changelogs: data.changelogs,
-      investments: data.investments,
-      settings: data.settings,
-    });
-    if (log) {
-      await addLog({
-        action: "SYNC",
-        section: "BUY",
-        record_id: "-",
-        model: "Google Sheet",
-        quantity: 0,
-        old_value: "",
-        new_value: "IMPORT",
-        remarks: "Synced from Google Sheet",
+    try {
+      const data = await syncManager.syncFromSheets();
+      const role = syncManager.getRole();
+      set({
+        sheetRole: role,
+        googleSessionExpired: false,
+        purchases: data.purchases,
+        sales: data.sales,
+        expenses: data.expenses,
+        adjustments: data.adjustments,
+        changelogs: data.changelogs,
+        investments: data.investments,
+        settings: data.settings,
       });
+      // Note: SYNC actions are excluded from audit changelogs as per user preference.
+    } catch (err: any) {
+      if (
+        err?.status === 401 ||
+        String(err?.message || "").toLowerCase().includes("session has expired") ||
+        String(err?.message || "").toLowerCase().includes("unauthorized")
+      ) {
+        set({ googleSessionExpired: true });
+      }
+      throw err;
     }
   },
 }));
@@ -639,7 +651,7 @@ async function addLog(entry: Omit<ChangeLog, "change_id" | "timestamp" | "user" 
       changelogs.map((c) => c.change_id),
     ),
     timestamp: new Date().toISOString(),
-    user: settings.user_name || "Unknown",
+    user: settings.user_name?.trim() || "Owner",
     device_id: settings.device_id,
     ...entry,
   };

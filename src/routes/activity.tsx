@@ -32,37 +32,49 @@ export const Route = createFileRoute("/activity")({
   component: ActivityPage,
 });
 
-const ACTIONS: ChangeAction[] = ["ADD", "EDIT", "DELETE", "IMPORT", "EXPORT", "SYNC"];
+const ACTIONS: ChangeAction[] = ["ADD", "EDIT", "DELETE", "IMPORT", "EXPORT"];
 const SECTIONS: ChangeSection[] = ["BUY", "SELL", "EXPENSE", "STOCK_ADJUSTMENT"];
 
 function ActivityPage() {
   const changelogs = useStockStore((s) => s.changelogs);
+  const settings = useStockStore((s) => s.settings);
+  const currentUserName = settings.user_name?.trim() || "Owner";
+
   const [search, setSearch] = useState("");
   const [user, setUser] = useState("");
   const [action, setAction] = useState("");
   const [section, setSection] = useState("");
   const debounced = useDebounced(search, 300);
 
-  const users = useMemo(
-    () => Array.from(new Set(changelogs.map((c) => c.user).filter(Boolean))).sort(),
-    [changelogs],
-  );
+  const users = useMemo(() => {
+    const names = changelogs
+      .filter((c) => c.action !== "SYNC")
+      .map((c) => (c.user && c.user !== "Unknown" ? c.user : currentUserName))
+      .filter(Boolean);
+    return Array.from(new Set(names)).sort();
+  }, [changelogs, currentUserName]);
 
   const rows = useMemo(() => {
     const q = debounced.trim().toLowerCase();
     return changelogs
+      .filter((c) => c.action !== "SYNC")
+      .map((c) => ({
+        ...c,
+        user: c.user && c.user !== "Unknown" ? c.user : currentUserName,
+      }))
       .filter(
         (c) =>
           (!user || c.user === user) &&
           (!action || c.action === action) &&
           (!section || c.section === section) &&
           (!q ||
+            c.user.toLowerCase().includes(q) ||
             c.model.toLowerCase().includes(q) ||
             c.record_id.toLowerCase().includes(q) ||
             (c.remarks ?? "").toLowerCase().includes(q)),
       )
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-  }, [changelogs, debounced, user, action, section]);
+  }, [changelogs, debounced, user, action, section, currentUserName]);
 
   const { visible, remaining, loadMore } = useListPaging(rows, [debounced, user, action, section]);
 
@@ -73,7 +85,7 @@ function ActivityPage() {
     <div className="space-y-6">
       <PageHeader
         title="Audit & Activity Log"
-        subtitle="Detailed immutable log of every record creation, edit, deletion, or sync."
+        subtitle="Detailed immutable log of every record creation, edit, deletion, import, and export."
       />
 
       <Panel className="space-y-4">

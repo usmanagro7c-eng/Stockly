@@ -188,6 +188,9 @@ export async function authenticate(): Promise<AuthState> {
       writeLocal("googleSheetToken", result.accessToken);
       writeLocal("googleSheetTokenExpiresAt", String(Date.now() + 3500 * 1000));
       writeLocal("googleSheetEmail", result.email ?? "");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("google-session-restored"));
+      }
       return { isAuthenticated: true, hasToken: true, email: result.email };
     } catch (error) {
       if (
@@ -254,6 +257,10 @@ export async function authenticate(): Promise<AuthState> {
     }
   } catch {
     // email is optional; ignore failures
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("google-session-restored"));
   }
 
   return { isAuthenticated: true, hasToken: true, email };

@@ -17,11 +17,27 @@ export function useAutoSync() {
   const inFlight = useRef(false);
 
   useEffect(() => {
-    if (isTokenValid()) {
-      useStockStore
-        .getState()
-        .refreshSheetPermission()
-        .catch(() => undefined);
+    const handleExpired = () => useStockStore.getState().setGoogleSessionExpired(true);
+    const handleRestored = () => useStockStore.getState().setGoogleSessionExpired(false);
+    window.addEventListener("google-session-expired", handleExpired);
+    window.addEventListener("google-session-restored", handleRestored);
+
+    const { settings, refreshSheetPermission, setGoogleSessionExpired } = useStockStore.getState();
+    const hasLinkedSheet = Boolean(settings.linked_file_name || syncManager.isConnected());
+    if (hasLinkedSheet) {
+      if (!isTokenValid()) {
+        setGoogleSessionExpired(true);
+      } else {
+        refreshSheetPermission().catch((err: any) => {
+          if (
+            err?.status === 401 ||
+            String(err?.message || "").toLowerCase().includes("session has expired") ||
+            String(err?.message || "").toLowerCase().includes("unauthorized")
+          ) {
+            setGoogleSessionExpired(true);
+          }
+        });
+      }
     }
 
     /**
@@ -32,8 +48,16 @@ export function useAutoSync() {
      */
     const pull = async () => {
       if (inFlight.current) return;
-      const { sheetRole, syncFromGoogleSheets } = useStockStore.getState();
-      if (!syncManager.isConnected() || sheetRole === null || !isTokenValid()) return;
+      const { sheetRole, syncFromGoogleSheets, settings: currentSettings, setGoogleSessionExpired: markExpired } =
+        useStockStore.getState();
+      const isLinked = Boolean(currentSettings.linked_file_name || syncManager.isConnected());
+      if (!isLinked) return;
+
+      if (!isTokenValid()) {
+        markExpired(true);
+        return;
+      }
+      if (sheetRole === null) return;
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
       inFlight.current = true;
@@ -41,7 +65,14 @@ export function useAutoSync() {
         // Automatic pulls stay out of the changelog; they would otherwise add
         // a row every minute forever.
         await syncFromGoogleSheets(false);
-      } catch (error) {
+      } catch (error: any) {
+        if (
+          error?.status === 401 ||
+          String(error?.message || "").toLowerCase().includes("session has expired") ||
+          String(error?.message || "").toLowerCase().includes("unauthorized")
+        ) {
+          markExpired(true);
+        }
         // Quiet on transient failures; next interval will retry.
         if (typeof console !== "undefined") {
           console.warn("Auto-sync pull failed:", error);
@@ -67,6 +98,8 @@ export function useAutoSync() {
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
+      window.removeEventListener("google-session-expired", handleExpired);
+      window.removeEventListener("google-session-restored", handleRestored);
       clearInterval(interval);
       if (visibilityTimer) clearTimeout(visibilityTimer);
       window.removeEventListener("online", onOnline);

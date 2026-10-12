@@ -528,6 +528,9 @@ export class GoogleSheetsService {
             }
           }
         }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("google-session-expired"));
+        }
         const err = new Error(
           "Your Google session has expired. Please sign in again with Google in Settings.",
         ) as Error & { status?: number };

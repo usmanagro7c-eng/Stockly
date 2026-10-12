@@ -28,6 +28,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useMobileBack } from "@/hooks/use-mobile-back";
 import { EdgeBackIndicator } from "@/components/common/EdgeBackIndicator";
 import { StocklyLogo } from "@/components/common/StocklyLogo";
+import { GoogleSessionAlert } from "@/components/common/GoogleSessionAlert";
 import { toast } from "sonner";
 
 function Brand({ compact }: { compact?: boolean }) {
@@ -108,23 +109,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Native-style Edge Gesture Visual Feedback */}
       <EdgeBackIndicator state={edgeState} />
 
-      {/* Offline / Read-Only Top Status Banner */}
-      {showBanners && (
-        <div className="sticky top-0 z-40 px-3 pt-2 lg:pl-68 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-          {!online && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-400 backdrop-blur-md shadow-sm">
-              <CloudOff className="size-4 shrink-0 text-amber-400" aria-hidden />
-              <span>Offline Mode: Changes are saved safely on this device and will sync automatically once reconnected.</span>
-            </div>
-          )}
-          {sheetRole === "read" && online && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3.5 py-2 text-xs font-medium text-sky-400 backdrop-blur-md shadow-sm">
-              <Eye className="size-4 shrink-0 text-sky-400" aria-hidden />
-              <span>Viewer Mode: Connected with read-only permissions. You can view all records and pull fresh data.</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Top Status Banners & Google Session Expired Alert */}
+      <div className="sticky top-0 z-40 px-3 pt-2 lg:pl-68 space-y-1.5">
+        <GoogleSessionAlert />
+        {!online && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-400 backdrop-blur-md shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+            <CloudOff className="size-4 shrink-0 text-amber-400" aria-hidden />
+            <span>Offline Mode: Changes are saved safely on this device and will sync automatically once reconnected.</span>
+          </div>
+        )}
+        {sheetRole === "read" && online && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3.5 py-2 text-xs font-medium text-sky-400 backdrop-blur-md shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+            <Eye className="size-4 shrink-0 text-sky-400" aria-hidden />
+            <span>Viewer Mode: Connected with read-only permissions. You can view all records and pull fresh data.</span>
+          </div>
+        )}
+      </div>
 
       {/* Desktop Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-68 flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl px-4.5 py-5.5 lg:flex">
