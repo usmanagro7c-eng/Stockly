@@ -22,6 +22,7 @@
     "rolldown": "1.2.1"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
     "@capacitor/keyboard": "^8.0.5",
     "@capawesome/capacitor-google-sign-in": "^0.1.4",
     "@googleapis/sheets": "^17.0.0",

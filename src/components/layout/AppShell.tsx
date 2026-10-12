@@ -25,6 +25,8 @@ import { analyticsNav, primaryNav, systemNav } from "./nav-items";
 import { useStockStore } from "@/store/stockStore";
 import { useAutoSync } from "@/hooks/use-auto-sync";
 import { useTheme } from "@/hooks/use-theme";
+import { useMobileBack } from "@/hooks/use-mobile-back";
+import { EdgeBackIndicator } from "@/components/common/EdgeBackIndicator";
 import { StocklyLogo } from "@/components/common/StocklyLogo";
 import { toast } from "sonner";
 
@@ -59,6 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const syncToSheets = useStockStore((s) => s.syncToGoogleSheets);
   const syncFromSheets = useStockStore((s) => s.syncFromGoogleSheets);
   const { theme, cycleTheme, isLight } = useTheme();
+  const { edgeState } = useMobileBack({ moreOpen, setMoreOpen });
 
   useAutoSync();
 
@@ -102,6 +105,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col selection:bg-primary/25 selection:text-primary">
+      {/* Native-style Edge Gesture Visual Feedback */}
+      <EdgeBackIndicator state={edgeState} />
+
       {/* Offline / Read-Only Top Status Banner */}
       {showBanners && (
         <div className="sticky top-0 z-40 px-3 pt-2 lg:pl-68 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
