@@ -168,7 +168,7 @@ function SetupScreen() {
             </p>
           )}
           <p className="text-[11px] text-muted-foreground">
-            Set to <span className="text-foreground font-medium">Personal</span> by default. You can edit this anytime in Settings.
+            Set to <span className="text-foreground font-medium">Personal</span> You can edit this anytime in Settings.
           </p>
         </div>
 

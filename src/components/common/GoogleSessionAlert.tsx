@@ -110,10 +110,10 @@ export function GoogleSessionAlert() {
               Google Session Expired
             </h3>
             <p className="mt-2 text-sm text-foreground/90 leading-relaxed font-medium">
-              Aapka Google account session expire ho chuka hai. Real-time Google Sheet synchronization pause ho gaya hai.
+              Your Google session has expired and real-time sync is paused.
             </p>
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              Automatic sync resume karne ke liye apna Google account dobara reconnect karein.
+              Reconnect your Google account to resume sync.
             </p>
 
             {/* Action Buttons */}
@@ -154,7 +154,7 @@ export function GoogleSessionAlert() {
                 onClick={() => setDismissed(true)}
                 className="w-full py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-elevated/60 transition-colors"
               >
-                Dismiss for now (Remind later)
+                Dismiss
               </button>
             </div>
           </div>
